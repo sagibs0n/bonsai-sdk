@@ -1,0 +1,11 @@
+{
+    "files": [
+        "*.ink",
+        "*.py",
+        "requirements.txt"
+    ],
+    "training": {
+        "command": "python lunarlander_continuous_simulator.py",
+        "simulator": "bonsai.ai"
+    }
+}

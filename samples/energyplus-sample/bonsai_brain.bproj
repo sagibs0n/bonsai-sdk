@@ -1,0 +1,11 @@
+{
+    "files": [
+        "*.ink",
+        "*.py",
+        "requirements.txt"
+    ],
+    "training": {
+        "command": "python3 energyplus_simulator.py",
+        "simulator": "bonsai.energyplus"
+    }
+}

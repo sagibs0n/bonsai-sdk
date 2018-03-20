@@ -1,0 +1,10 @@
+{
+    "files": [
+        "frozenlake_4x4.ink",
+        "frozenlake_simulator.py"
+    ],
+    "training": {
+        "command": "python frozenlake_simulator.py",
+        "simulator": "openai.gym.frozenlake"
+    }
+}

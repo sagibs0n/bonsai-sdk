@@ -1,0 +1,11 @@
+{
+    "files": [
+        "*.ink",
+        "*.py",
+        "requirements.txt"
+    ],
+    "training": {
+        "command": "python elevator_simulator.py",
+        "simulator": "bonsai.ai"
+    }
+}

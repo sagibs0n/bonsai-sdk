@@ -1,0 +1,115 @@
+[
+  {},
+  {
+    "messageType": "ACKNOWLEDGE_REGISTER",
+    "acknowledgeRegisterData": {
+      "propertiesSchema": {
+        "name": "SimConfig",
+        "field": [
+          {
+            "name": "dummy",
+            "number": 1,
+            "type": "TYPE_INT32"
+          },
+          {
+            "name": "pixels",
+            "number": 2,
+            "type": "TYPE_MESSAGE",
+            "typeName": "bonsai.inkling_types.proto.Luminance"
+          }
+        ]
+      },
+      "outputSchema": {
+        "name": "SimState",
+        "field": [
+          {
+            "name": "pixels",
+            "number": 1,
+            "type": "TYPE_MESSAGE",
+            "typeName": "bonsai.inkling_types.proto.Luminance"
+          }
+        ]
+      },
+      "predictionSchema": {
+        "name": "Action",
+        "field": [
+          {
+            "name": "move",
+            "number": 1,
+            "type": "TYPE_INT32"
+          }
+        ]
+      },
+      "simId": 744323797
+    }
+  },
+  {
+    "messageType": "SET_PROPERTIES",
+    "setPropertiesData": {
+      "dynamicProperties": "CP///////////wE=",
+      "rewardName": "some_reward",
+      "predictionSchema": {
+        "name": "Action",
+        "field": [
+          {
+            "name": "move",
+            "number": 1,
+            "type": "TYPE_INT32"
+          }
+        ]
+      }
+    },
+    "simId": 744323797
+  },
+  {
+    "messageType": "START",
+    "simId": 744323797
+  },
+  {
+    "messageType": "STOP",
+    "simId": 744323797
+  },
+  {
+    "messageType": "PREDICTION",
+    "predictionData": [
+      {
+        "dynamicPrediction": "CAE="
+      },
+      {
+        "dynamicPrediction": "CAE="
+      },
+      {
+        "dynamicPrediction": "CAE="
+      },
+      {
+        "dynamicPrediction": "CAA="
+      },
+      {
+        "dynamicPrediction": "CAA="
+      },
+      {
+        "dynamicPrediction": "CAA="
+      },
+      {
+        "dynamicPrediction": "CAE="
+      },
+      {
+        "dynamicPrediction": "CAA="
+      },
+      {
+        "dynamicPrediction": "CAA="
+      },
+      {
+        "dynamicPrediction": "CAE="
+      }
+    ],
+    "simId": 744323797
+  },
+  {
+    "messageType": "RESET",
+    "simId": 744323797
+  },
+  {
+    "messageType": "FINISHED"
+  }
+]

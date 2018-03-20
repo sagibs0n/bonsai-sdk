@@ -1,0 +1,11 @@
+{
+    "files": [
+        "*.ink",
+        "*.py",
+        "requirements.txt"
+    ],
+    "training": {
+        "command": "python find_the_center_sim.py",
+        "simulator": "bonsai.ai"
+    }
+}

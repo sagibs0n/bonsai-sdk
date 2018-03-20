@@ -1,0 +1,107 @@
+[
+  {},
+  {
+    "messageType": "ACKNOWLEDGE_REGISTER",
+    "acknowledgeRegisterData": {
+      "propertiesSchema": {
+        "name": "CartPoleConfig",
+        "field": [
+          {
+            "name": "episode_length",
+            "number": 1,
+            "type": "TYPE_INT32"
+          },
+          {
+            "name": "deque_size",
+            "number": 2,
+            "type": "TYPE_UINT32"
+          }
+        ]
+      },
+      "outputSchema": {
+        "name": "GameState",
+        "field": [
+          {
+            "name": "position",
+            "number": 1,
+            "type": "TYPE_FLOAT"
+          },
+          {
+            "name": "velocity",
+            "number": 2,
+            "type": "TYPE_FLOAT"
+          },
+          {
+            "name": "angle",
+            "number": 3,
+            "type": "TYPE_FLOAT"
+          },
+          {
+            "name": "rotation",
+            "number": 4,
+            "type": "TYPE_FLOAT"
+          }
+        ]
+      },
+      "predictionSchema": {
+        "name": "Action",
+        "field": [
+          {
+            "name": "command",
+            "number": 1,
+            "type": "TYPE_INT32"
+          }
+        ]
+      },
+      "simId": 270022238
+    }
+  },
+  {
+    "messageType": "SET_PROPERTIES",
+    "setPropertiesData": {
+      "dynamicProperties": "CP///////////wEQAQ==",
+      "rewardName": "open_ai_gym_default_objective",
+      "predictionSchema": {
+        "name": "Action",
+        "field": [
+          {
+            "name": "command",
+            "number": 1,
+            "type": "TYPE_INT32"
+          }
+        ]
+      }
+    },
+    "simId": 270022238
+  },
+  {
+    "messageType": "START",
+    "simId": 270022238
+  },
+  {
+    "messageType": "STOP",
+    "simId": 270022238
+  },
+  {
+    "messageType": "PREDICTION",
+    "predictionData": [
+      {
+        "dynamicPrediction": "CAA="
+      },
+      {
+        "dynamicPrediction": "CAA="
+      },
+      {
+        "dynamicPrediction": "CAE="
+      }
+    ],
+    "simId": 270022238
+  },
+  {
+    "messageType": "RESET",
+    "simId": 270022238
+  },
+  {
+    "messageType": "FINISHED"
+  }
+]

@@ -1,0 +1,10 @@
+.brains
+
+# link to the simulator executable
+energyplus
+
+# output by sim
+socket.cfg
+graph.html
+output*
+*.log
