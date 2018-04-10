@@ -1,6 +1,9 @@
 # Copyright (C) 2018 Bonsai, Inc.
 
 import abc
+import time
+import datetime
+from collections import deque
 
 from tornado.ioloop import IOLoop
 
@@ -12,6 +15,33 @@ from bonsai_ai.simulator_ws import Simulator_WS
 log = Logger()
 
 _CONNECT_TIMEOUT_SECS = 60
+
+
+class _RateCounter(object):
+    """
+    A utility class for counting events and reporting their rate
+    in `updates/sec`.
+    """
+    def __init__(self):
+        self.reset()
+
+    def update(self):
+        """
+        Call this at intervals to update the counter and rate.
+        Uses an exponetial moving average.
+        """
+        self.count += 1
+        delta = (time.time() - self.start)
+        if delta is not 0:
+            average = self.count / delta
+            DECAY_RATE = 0.9
+            self.rate = average * DECAY_RATE + self.rate * (1.0 - DECAY_RATE)
+
+    def reset(self):
+        """ resets the counters """
+        self.count = 0
+        self.rate = 0
+        self.start = time.time()
 
 
 class Simulator(object):
@@ -34,6 +64,11 @@ class Simulator(object):
         name:           The name of this Simulator. Must match simulator
                         in Inkling.
         objective_name: The name of the current objective for an episode.
+        episode_reward: Cumulative reward for this episode so far.
+        episode_count:  Number of completed episodes since sim launch.
+        episode_rate:   Episodes per second. R/O
+        iteration_count: Number of iterations for this episode.
+        iteration_rate: Iterations per second
 
     Example Inkling:
         simulator my_simulator(Config)
@@ -54,6 +89,9 @@ class Simulator(object):
             def simulate(self, action):
                 # your simulation stepping code goes here.
                 return (my_state, my_reward, is_terminal)
+
+            def episode_finish(self):
+                print('Episode reward', self.episode_reward)
 
         ...
 
@@ -80,13 +118,26 @@ class Simulator(object):
         self._ioloop = IOLoop.current()
         self._impl = Simulator_WS(brain, self, name)
 
+        # statistics
+        self.episode_reward = 0
+        self.episode_count = 0
+        self._episode_rate = _RateCounter()
+        self.iteration_count = 0
+        # NOTE: _iteration_rate is accumulative, not per episode
+        self._iteration_rate = _RateCounter()
+
     def __repr__(self):
         """ Return a JSON representation of the Simulator. """
         return '{{'\
             'name: {self.name!r}, ' \
             'objective_name: {self._impl.objective_name!r}, ' \
             'predict: {self.predict!r}, ' \
-            'brain: {self.brain!r}' \
+            'brain: {self.brain!r}, ' \
+            'episode_reward: {self.episode_reward!r}, ' \
+            'episode_count: {self.episode_count!r}, ' \
+            'episode_rate: {self.episode_rate!r}, ' \
+            'iteration_count: {self.iteration_count!r}, ' \
+            'iteration_rate: {self.iteration_rate!r}' \
             '}}'.format(self=self)
 
     @property
@@ -98,6 +149,16 @@ class Simulator(object):
     def objective_name(self):
         """ Current episode objective name. """
         return self._impl.objective_name
+
+    @property
+    def episode_rate(self):
+        """ Episodes per second. """
+        return int(self._episode_rate.rate)
+
+    @property
+    def iteration_rate(self):
+        """ Iterations per second. """
+        return int(self._iteration_rate.rate)
 
     @abc.abstractmethod
     def episode_start(self, episode_config):
@@ -190,8 +251,44 @@ class Simulator(object):
         """
         return {}  # state, reward, terminal
 
+    def episode_finish(self):
+        """
+        This callback is called at the end of every episode before the next
+        episode_start(). You can use it to do post episode cleanup
+        or statistics reporting.
+        """
+        pass
+
     def standby(self, reason):
         log.info(reason)
+
+    def _on_episode_start(self, episode_config):
+        """ Callback hook for episode_start, called by event dispatcher """
+        # update counters
+        self.iteration_count = 0
+        self.episode_reward = 0
+
+        return self.episode_start(episode_config)
+
+    def _on_simulate(self, action):
+        """ Callback hook for simulate, called by event dispatcher. """
+        # update counters
+        self._iteration_rate.update()
+        self.iteration_count += 1
+
+        # step
+        state, reward, terminal = self.simulate(action)
+        self.episode_reward += reward
+        return state, reward, terminal
+
+    def _on_episode_finish(self):
+        """ Callback hook for end of episode, called by event dispatcher. """
+        # update counters
+        self._episode_rate.update()
+        self.episode_count += 1
+
+        # userland callback
+        self.episode_finish()
 
     def run(self):
         """

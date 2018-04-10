@@ -6,6 +6,9 @@ from bonsai_ai import Config
 from bonsai_ai.logger import Logger
 
 
+pytestmark = pytest.mark.skip(reason='T5373')
+
+
 @pytest.mark.parametrize(
     "predict_flag, expected_version",
     [('--predict=1', 1),

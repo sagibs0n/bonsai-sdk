@@ -49,6 +49,13 @@ class BasicSimulator(bonsai_ai.Simulator):
         reward = self.goal_count
         return (state, reward, terminal)
 
+    def episode_finish(self):
+        print('Episode', self.episode_count,
+              'reward:', self.episode_reward,
+              'eps:', self.episode_rate,
+              'ips:', self.iteration_rate,
+              'iters:', self.iteration_count)
+
 
 if __name__ == "__main__":
     config = bonsai_ai.Config()

@@ -46,5 +46,5 @@ if __name__ == '__main__':
     # create a brain, openai-gym environment, and simulator
     config = Config(sys.argv)
     brain = Brain(config)
-    sim = FrozenLake(brain)
+    sim = FrozenLake(brain, iteration_limit=200)
     sim.run_gym()

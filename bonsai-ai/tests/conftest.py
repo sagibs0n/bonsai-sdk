@@ -1,5 +1,6 @@
 # Copyright (C) 2018 Bonsai, Inc.
 
+import os
 import pytest
 import requests
 import time
@@ -10,7 +11,7 @@ except ImportError:
     from mock import Mock
 
 
-from bonsai_ai import Simulator, Brain, Config, Luminance
+from bonsai_ai import Simulator, Brain, Config, Luminance, Predictor
 from ws import open_bonsai_ws, close_bonsai_ws
 
 
@@ -152,6 +153,20 @@ def predict_sim(predict_config):
 
 
 @pytest.fixture
+def predictor(predict_config):
+    brain = Brain(predict_config)
+    predictor = Predictor(brain, 'cartpole_simulator')
+    return predictor
+
+
+@pytest.fixture
+def predictor_with_train_config(train_config):
+    brain = Brain(train_config)
+    predictor = Predictor(brain, 'cartpole_simulator')
+    return predictor
+
+
+@pytest.fixture
 def luminance_sim(train_config):
     brain = Brain(train_config)
     sim = LuminanceSim(brain, 'random_simulator')
@@ -160,13 +175,20 @@ def luminance_sim(train_config):
 
 def pytest_addoption(parser):
     parser.addoption("--protocol", action="store",
-                     default="proto_bin/cartpole_wire.json",
                      help="Path to message JSON")
 
 
 @pytest.fixture(scope='module', autouse=True)
 def bonsai_ws(request):
-    protocol = request.config.getoption("--protocol")
+    default_protocol = "{}/proto_bin/cartpole_wire.json".format(
+                           os.path.dirname(__file__))
+
+    # default protocol can be overriden at the module level
+    protocol = getattr(request.module, 'protocol_file', default_protocol)
+
+    # .. and the command line option has the highest precedence
+    if request.config.getoption('--protocol'):
+        protocol = request.config.getoption('--protocol')
     server = open_bonsai_ws(protocol)
 
     def fin():

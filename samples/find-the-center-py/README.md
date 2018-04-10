@@ -1,5 +1,5 @@
 # Find the Center Example Project
-This project demonstrates a basic implementation of a python simulator with custom Inkling code. For more information see this example walkthrough on [Bonsai docs](http://docs.bons.ai/examples.html#basic-simulator-find-the-center).
+This project demonstrates a basic implementation of a Python simulator with custom Inkling code. For more information see this example walkthrough on [Bonsai docs](http://docs.bons.ai/examples.html#basic-python-c-simulation).
 
 
 ## WEB GUIDE
@@ -33,28 +33,6 @@ If you're using the web interface, please follow the [quick start guide](http://
 1. Run the simulator using predictions from your BRAIN. You can now see AI in action!
        `python find_the_center_sim.py --predict`
 
-
-## CPP GUIDE
-
-### CREATE YOUR BRAIN
-1. Setup your BRAIN's local project folder.
-       `bonsai create <your_brain>`
-2. Upload Inkling to the Bonsai server with one command if you have changed any files.
-       `bonsai push`
-
-### BUILD YOUR SIMULATOR
-1. Install the bonsai C++ library.
-    `brew install libbonsai`
-2. Run make from the source directory.
-    ```cd find-the-center
-    make```
-
-## TRAIN YOUR BRAIN
-1. Run this command to start training mode for your BRAIN.
-       `bonsai train start`
-2. Run the compiled simulator.
-    `./find_the_center_sim`
-3. Open the web interface to see training progress.
 
 ## Questions about Inkling?
 See our [Inkling Guide](http://docs.bons.ai/guides/inkling-guide.html) and [Inkling Reference](http://docs.bons.ai/references/inkling-reference.html) for help.

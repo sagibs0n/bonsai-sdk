@@ -1,2 +1,9 @@
-*.egg-info
+# Byte-compiled / optimized / DLL files
 __pycache__
+
+# Distribution / packaging
+*.egg-info
+
+# Unit test / coverage reports
+.tox/
+

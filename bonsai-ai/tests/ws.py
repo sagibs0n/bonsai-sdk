@@ -117,6 +117,7 @@ def open_bonsai_ws(protocol):
 def close_bonsai_ws():
     loop = ioloop.IOLoop.instance()
     loop.add_callback(loop.stop)
+    loop.start()
 
 
 if __name__ == "__main__":

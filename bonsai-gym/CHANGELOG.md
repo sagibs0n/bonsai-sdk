@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.3
+- Update GymSimulator to use Simulators new statistics collections
+
 ## 2.0.2
 - Add gym_simulate and gym_episode_start hooks, as well as iteration_limits
 

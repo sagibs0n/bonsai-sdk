@@ -10,7 +10,20 @@ the **BRAIN**. The name used to construct `Simulator` must match the name of the
 in the *Inkling* file.
 
 There are two main methods that you must override, `episode_start` and `simulate`. The diagram
-demonstrates how these are called during training.
+demonstrates how these are called during training. Optionally, one may also override
+`episode_finish`, which is called at the end of an episode.
+
+| Property          | Description |
+| ---               | ---         |
+| `brain`           |  The simulators Brain object. |
+| `name`            |  The simulators name. |
+| `objective_name`  |  The name of the current objective for an episode. |
+| `episode_reward`  |  Cumulative reward for this episode so far. |
+| `episode_count`   |  Number of completed episodes since sim launch. |
+| `episode_rate`    |  Episodes per second. |
+| `iteration_count` |  Number of iterations for the current episode. |
+| `iteration_rate`  |  Iterations per second. |
+
 
 ## Simulator(brain, name)
 
@@ -28,7 +41,7 @@ end
 ```cpp
 class MySimulator : public Simulator {
  public:
-    explicit BasicSimulator(std::shared_ptr<Brain> brain, string name )
+    explicit BasicSimulator(std::shared_ptr<Brain> brain, string name)
         : Simulator(move(brain), move(name)) {
             // your simulator init code goes here.
         }
@@ -43,6 +56,10 @@ class MySimulator : public Simulator {
         float& reward,
         bool& terminal) override {
             // your simulation stepping code.
+        }
+
+    void episode_finish() override {
+            // your post-episode code.
         }
 };
 
@@ -69,6 +86,10 @@ class MySimulator(bonsai_ai.Simulator):
     def simulate(self, action):
         # your simulation stepping code goes here.
         return (my_state, my_reward, is_terminal)
+
+    def episode_finish(self):
+        # your post episode code goes here.
+        pass
 
 ...
 
@@ -300,6 +321,23 @@ simulation has finished or halted.
 
 The client should call this method in a `while` loop until it returns `false`.
 To run for prediction, `brain()->config()->predict()` must return `true`.
+
+## episode_finish()
+
+```cpp
+void MySimulator::episode_finish() {
+    cout << 'Episode: ' << episode_count() << ' reward:' << episode_reward() << endl;
+}
+```
+
+```python
+def episode_finish(self):
+    print('Episode:', self.episode_count,
+          'reward:', self.episode_reward)
+```
+
+This callback is called at the end of each episode. You can use it to log
+out statistical information, or perform post episode cleanup.
 
 ## operator<<(ostream, simulator)
 

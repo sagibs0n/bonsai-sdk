@@ -3,7 +3,8 @@
 # pylint: disable=missing-docstring
 # pylint: disable=too-many-function-args
 
-
+import os
+import pytest
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
 from bonsai_ai.proto.generator_simulator_api_pb2 import SimulatorToServer
 
@@ -13,6 +14,10 @@ except ImportError:
     from conftest import isclose
 
 from struct import unpack
+
+
+protocol_file = "{}/proto_bin/luminance_wire.json".format(
+                    os.path.dirname(__file__))
 
 
 def test_luminance_sim(luminance_sim):

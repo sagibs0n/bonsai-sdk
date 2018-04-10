@@ -1,4 +1,6 @@
+wheel>=0.31.0
 requests>=2.11
 tornado==4.5.3
 protobuf<4,>=3.0.0
 configparser>=3.5.0
+bonsai-cli>=0.8.22

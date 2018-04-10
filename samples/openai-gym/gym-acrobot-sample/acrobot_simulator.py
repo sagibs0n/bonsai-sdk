@@ -7,7 +7,7 @@ log = logging.getLogger('gym_simulator')
 log.setLevel(logging.DEBUG)
 
 
-class CartPole(GymSimulator):
+class Acrobot(GymSimulator):
     # Environment name, from openai-gym
     environment_name = 'Acrobot-v1'
 
@@ -35,5 +35,5 @@ if __name__ == '__main__':
     print(config)
 
     brain = Brain(config)
-    sim = CartPole(brain)
+    sim = Acrobot(brain, iteration_limit=500)
     sim.run_gym()

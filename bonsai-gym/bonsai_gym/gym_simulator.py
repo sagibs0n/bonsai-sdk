@@ -48,9 +48,6 @@ class GymSimulator(Simulator):
 
         # book keeping for rate status
         self._log_interval = 10.0  # seconds
-        self._episode_reward = 0
-        self._iteration_count = 0
-        self._episode_count = 0
         self._last_status = time()
 
     # convert openai gym observation to our state schema
@@ -94,9 +91,6 @@ class GymSimulator(Simulator):
     def episode_start(self, parameters):
         """ called at the start of each new episode
         """
-        self._episode_count += 1
-        self._iteration_count = 0
-        self._episode_reward = 0.0
 
         # optional configuration arguments for open-ai-gym
         if "iteration_limit" in parameters:
@@ -125,13 +119,9 @@ class GymSimulator(Simulator):
         observation, reward, done, info = self.gym_simulate(gym_action)
 
         # episode limits
-        self._iteration_count += 1
         if (self._iteration_limit > 0):
-            if (self._iteration_count >= self._iteration_limit):
+            if (self.iteration_count >= self._iteration_limit):
                 done = True
-
-        # for logging
-        self._episode_reward += reward
 
         # render if not headless
         if not self._headless:
@@ -141,16 +131,15 @@ class GymSimulator(Simulator):
         # print a periodic status of iterations and episodes
         self._periodic_status_update()
 
-        # reset if we finished this episode
-        if done:
-            # log how this episode went
-            log.info("Episode %s reward is %s",
-                     self._episode_count, self._episode_reward)
-            self._last_status = time()
-
         # convert state and return to the server
         state = self.gym_to_state(observation)
         return state, reward, done
+
+    def episode_finish(self):
+        # log how this episode went
+        log.info("Episode %s reward is %s",
+                 self.episode_count, self.episode_reward)
+        self._last_status = time()
 
     def standby(self, reason):
         """ report standby messages from the server
@@ -177,7 +166,7 @@ class GymSimulator(Simulator):
         """
         if time() - self._last_status > self._log_interval:
             log.info("Episode %s is still running, reward so far is %s",
-                     self._episode_count, self._episode_reward)
+                     self.episode_count, self.episode_reward)
             self._last_status = time()
 
     def _parse_arguments(self):

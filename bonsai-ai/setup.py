@@ -30,10 +30,12 @@ setup(
     ],
     keywords="bonsai",
     install_requires=[
+        'wheel>=0.31.0',
         'protobuf>=3.0.0,<4',
         'tornado==4.5.3',
         'requests>=2.11',
-        'configparser>=3.5.0'
+        'configparser>=3.5.0',
+        'bonsai-cli>=0.8.22'
     ],
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, '
                     '!=3.3.*, !=3.4.*',

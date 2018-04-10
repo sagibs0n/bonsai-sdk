@@ -31,6 +31,9 @@ _URL = 'url'
 _PROXY = 'proxy'
 _PROFILE = 'profile'
 
+# Default bonsai api url
+_DEFAULT_URL = 'https://api.bons.ai'
+
 # env variables, used in hosted containers
 _BONSAI_HEADLESS = 'BONSAI_HEADLESS'
 _BONSAI_TRAIN_BRAIN = 'BONSAI_TRAIN_BRAIN'
@@ -219,6 +222,10 @@ class Config(object):
                 self.profile = section
         else:
             section = profile
+
+        # if url is none set it to default bonsai api url
+        if self.url is None:
+            config_parser.set(self.profile, _URL, _DEFAULT_URL)
 
         assign_key(_ACCESSKEY)
         assign_key(_USERNAME)

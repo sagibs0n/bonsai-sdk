@@ -65,6 +65,9 @@ class Simulator_WS(object):
         # current batch of simulation steps
         self._sim_steps = []
 
+        # Caching actions for predictor
+        self._predictor_action = None
+
         # protobuf discriptor cache
         self._inkling = InklingMessageFactory()
 
@@ -123,20 +126,23 @@ class Simulator_WS(object):
         return result
 
     def _send_registration(self, to_server):
+        log.simulator_ws('Sending Registration')
         to_server.message_type = SimulatorToServer.REGISTER
         to_server.register_data.simulator_name = self.name
 
     def _send_ready(self, to_server):
+        log.simulator_ws('Sending Ready')
         to_server.message_type = SimulatorToServer.READY
         to_server.sim_id = self._sim_id
 
     def _send_initial_state(self, to_server):
+        log.simulator_ws('Sending initial State')
         to_server.message_type = SimulatorToServer.STATE
         to_server.sim_id = self._sim_id
         state = to_server.state_data.add()
 
         try:
-            initial_state = self._sim.episode_start(self._init_properties)
+            initial_state = self._sim._on_episode_start(self._init_properties)
         except Exception as e:
             raise EpisodeStartError(e)
 
@@ -148,6 +154,7 @@ class Simulator_WS(object):
         # state.action_taken = ... # no-op for init state
 
     def _send_state(self, to_server):
+        log.simulator_ws('Sending State')
         to_server.message_type = SimulatorToServer.STATE
         to_server.sim_id = self._sim_id
         for step in self._sim_steps:
@@ -162,6 +169,7 @@ class Simulator_WS(object):
         self._sim_steps = []
 
     def _on_acknowledge_register(self, from_server):
+        log.simulator_ws('Acknowledging Registration')
         data = from_server.acknowledge_register_data
         self._properties_schema = data.properties_schema
         self._output_schema = data.output_schema
@@ -169,6 +177,7 @@ class Simulator_WS(object):
         self._sim_id = data.sim_id
 
     def _on_set_properties(self, from_server):
+        log.simulator_ws('Setting properties')
         data = from_server.set_properties_data
         self._prediction_schema = data.prediction_schema
         self.objective_name = data.reward_name
@@ -181,16 +190,20 @@ class Simulator_WS(object):
         pass
 
     def _on_prediction(self, from_server):
+        log.simulator_ws('On Prediction')
         for p_data in from_server.prediction_data:
             step = self.SimStep()
             step.prediction = p_data.dynamic_prediction
             self._sim_steps.append(step)
 
+            # Convert server msg to action dict and saves it for predictor
+            self._cache_action_for_predictor(step.prediction)
+
     def _on_reset(self, from_server):
         pass
 
     def _on_stop(self, from_server):
-        pass
+        self._sim._on_episode_finish()
 
     def _on_finished(self, from_server):
         pass
@@ -219,6 +232,13 @@ class Simulator_WS(object):
         method = getattr(self, method_name, _raise)
         method(from_server)
         self._prev_message_type = from_server.message_type
+
+    def _cache_action_for_predictor(self, prediction):
+        """ Converts a server prediction into an action dictionary and saves it
+            for the predictor class """
+        action_message = self._inkling.message_for_dynamic_message(
+            prediction, self._prediction_schema)
+        self._predictor_action = self._dict_for_message(action_message)
 
     @gen.coroutine
     def _connect(self):
@@ -249,12 +269,13 @@ class Simulator_WS(object):
         """ Helper function to advance the simulator and process the resulting
         state for transmission.
         """
+        log.simulator_ws('Advancing')
         action_message = self._inkling.message_for_dynamic_message(
             step.prediction, self._prediction_schema)
         action = self._dict_for_message(action_message)
 
         try:
-            state, reward, terminal = self._sim.simulate(action)
+            state, reward, terminal = self._sim._on_simulate(action)
         except Exception as e:
             raise SimulateError(e)
 
@@ -266,9 +287,15 @@ class Simulator_WS(object):
         step.terminal = terminal
         if terminal:
             try:
-                self._sim.episode_start(self._init_properties)
+                self._sim._on_episode_finish()
+                self._sim._on_episode_start(self._init_properties)
             except Exception as e:
                 raise EpisodeStartError(e)
+
+    @gen.coroutine
+    def close_connection(self):
+        """ Close websocket connection """
+        yield self._ws.close()
 
     @gen.coroutine
     def run(self):

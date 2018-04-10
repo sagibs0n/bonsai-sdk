@@ -11,6 +11,8 @@ except ImportError:
 
 from bonsai_ai import Brain, Config
 
+pytestmark = pytest.mark.skip(reason='Not run, preserving behavior')
+
 
 @patch('requests.get')
 def test_brain(mock_get):
