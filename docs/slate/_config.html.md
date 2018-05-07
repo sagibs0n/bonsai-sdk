@@ -176,6 +176,46 @@ my_config.brain_version = 0
 BRAIN version.
 The version of the brain to use when running for prediction. Set to 0 to use latest version.
 
+## record_file()
+
+```cpp
+my_config.record_file() == "foobar.json";
+my_config.set_record_file("foobar.json");
+```
+
+```python
+my_config.record_file == "foobar.json"
+my_config.record_file = "foobar.json"
+```
+
+This property defines the destination for log recording. Additionally, the format for log recording is inferred from the file extension. Currently supported options are `json` and `csv`. Missing file extension or use of an unsupported extension will result in runtime errors.
+
+## record_enabled()
+
+```cpp
+my_config.record_enabled() == true;
+my_config.set_record_enabled(true);
+```
+
+```python
+my_config.record_enabled == True
+my_config.record_enabled = True
+```
+
+## record_format()
+
+```cpp
+my_config.record_file() == "foobar.json";
+my_config.record_format() == "json";
+```
+
+```python
+my_config.record_file == "foobar.json"
+my_config.record_format == "json";
+```
+
+**Note:** This property cannot be set directly. It reflects the file extension of the currently configured `record_file`. `json` or `csv` are valid.
+
 ## operator<<(ostream, config)
 
 Will print out a representation of Config that is useful for debugging.

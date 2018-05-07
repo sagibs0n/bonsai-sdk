@@ -2,10 +2,12 @@
     "files": [
         "*.ink",
         "*.py",
+        "EMSWindowShadeControl.idf",
+        "variables.cfg",
         "requirements.txt"
     ],
     "training": {
         "command": "python3 energyplus_simulator.py",
-        "simulator": "bonsai.energyplus"
+        "simulator": "bonsai.energyplus2"
     }
 }

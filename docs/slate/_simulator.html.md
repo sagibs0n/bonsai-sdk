@@ -339,6 +339,134 @@ def episode_finish(self):
 This callback is called at the end of each episode. You can use it to log
 out statistical information, or perform post episode cleanup.
 
+## record_file()
+
+```cpp
+my_sim.record_file() == "/path/to/foobar.json";
+my_sim.set_record_file("/path/to/barfoo.json");
+
+my_sim.record_file() == "/path/to/foobar.csv";
+my_sim.set_record_file("/path/to/barfoo.csv");
+```
+
+```python
+my_sim.record_file == "/path/to/foobar.json"
+my_sim.record_file = "/path/to/barfoo.json"
+
+my_sim.record_file == "/path/to/foobar.csv"
+my_sim.record_file = "/path/to/foobar.csv"
+```
+
+Getter and setter for analytics recording file.
+
+When a new record file is set, the previous file will be closed immediately. Subsequent log lines will be written to the new file.
+
+## enable_keys(keys, prefix=None)
+
+This function adds the given keys to the log schema for this writer.
+If one is provided, the prefix will be prepended to those keys and
+they will appear as such in the resulting logs.
+If recording is not enabled, this method has no effect.
+    
+You should enable any keys you expect to see in the logs. If you
+attempt to insert objects containing keys which have not been
+enabled, those keys will be silently ignored.
+
+```cpp
+int main(int argc, char** argv) {
+    auto config = std::make_shared<bonsai::Config>(argc, argv);
+    auto brain = std::make_shared<Brain>(config);
+    MySim sim(brain);
+    sim.enable_keys({"foo", "bar"});
+    sim.enable_keys({"baz"}, "qux");
+}
+```
+
+```python
+if __name__ == "__main__":
+    config = Config(sys.argv)
+    brain = Brain(config)
+    sim = MySimulator(brain)
+    sim.enable_keys(["foo", "bar"])
+    sim.enable_keys(["baz"], "qux")
+```
+
+| Argument   | Description |
+| ---        | ---         |
+| `keys`     | A list/vector of strings to include as keys in log entries for this simulator. |
+| `prefix`   | A `std::string` used as a subdomain for the given `keys`. Entries will appear as `<prefix>.<key>` for each `key` in `keys`. Defaults to empty string. |
+
+## record_append(key, value, prefix="")
+
+**Note:** Used in C++ only. For python, use `record_append(obj, prefix)`.
+
+Adds the given key (prepended by `prefix`, if provided) and value to the current log entry. If the specified
+key is not enabled or recording is not enabled, this method has no effect.
+
+The following `value` types are supported:
+- `int64_t`
+- `size_t`
+- `double`
+- `std::string`
+- `bool`
+
+**Note:** The template specializations in the following snippet are included for completeness. If the `value` parameter is of one of the supported types, the correct specialization will be deduced by the compiler.
+
+```cpp
+int main(int argc, char** argv) {
+    auto config = std::make_shared<bonsai::Config>(argc, argv);
+    config.set_recording_enabled(true);
+    config.set_record_filie("foobar.json");
+    auto brain = std::make_shared<Brain>(config);
+    MySim sim(brain);
+    sim.enable_keys({"foo", "bar", "oof", "rab"});
+    sim.enable_keys({"baz"}, "qux");
+
+    while (sim.run()) {
+        sim.record_append<int64_t>("foo", -23);
+        sim.record_append<size_t>("bar", 123);
+        sim.record_append<double>("oof", .023);
+        sim.record_append<std::string>("rab", "foobar");
+        sim.record_append<bool>("baz", true, "qux");
+        sim.record_append<int64_t>("nope", 23);
+    }
+}
+```
+
+| Argument   | Description |
+| ---        | ---         |
+| `key`      | A `std::string` used as an index into the current log entry. |
+| `value`    | The value to add under `<prefix>.<key>`. May be any of `int64_t`, `size_t`, `double`, `std::string`, or `bool` |
+| `prefix`   | String prefix for `key`. Keys should be enabled and added with the same prefix. |
+
+## record_append(obj, prefix=None)
+
+**Note:** Used in Python only. For C++, use `record_append(key, value, prefix)`.
+
+Adds the keys (prepended by `prefix`, if provied) from the given dictionary to the current log entry. If recording is not enabled, this method has no effect. If a particular subset of the keys in `obj` are not enabled, they will be ignored silently.
+
+```python
+if __name__ == "__main__":
+    config = Config(sys.argv)
+    brain = Brain(config)
+    sim = MySimulator(brain)
+    sim.enable_keys(["foo", "bar"])
+    sim.enable_keys(["baz"], "qux")
+    while sim.run():
+        sim.record_append({
+            "foo": 23,
+            "bar": 5
+        })
+        sim.record_append({
+            "baz": "zabow"
+        }, "qux")
+```
+
+| Argument   | Description |
+| ---        | ---         |
+| `obj`      | A dictionary containing data to be added to the current log entry. |
+| `prefix`   | String prefix for the keys in `obj`. |
+
 ## operator<<(ostream, simulator)
 
 Prints out a representation of Simulator that is useful for debugging.

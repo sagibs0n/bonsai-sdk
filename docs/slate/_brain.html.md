@@ -4,7 +4,13 @@ Manages a BRAIN instance, talks with the server backend, and contains
 information about the BRAIN state. In future versions will be used to upload
 and download Inkling to and from the BRAIN on the server.
 
-Requires a configuration and a BRAIN name.
+Requires a configuration and a BRAIN name. The BRAIN name can be set in
+several places, and there is an order of what takes precedence over the other as follows:
+
+Brain() >> --brain >> .brains >> .bonsai[profile] >> .bonsai[DEFAULT] >> env[BONSAI_TRAIN_BRAIN]
+
+such that ">>" indicates a decreasing order of precedence. Note that failure to set
+BRAIN name in at least one of these places will result in a friendly error.
 
 ## Brain(config, name)
 Creates a local object for interacting with an existing BRAIN on the server.

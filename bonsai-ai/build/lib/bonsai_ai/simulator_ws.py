@@ -174,6 +174,8 @@ class Simulator_WS(object):
         self._properties_schema = data.properties_schema
         self._output_schema = data.output_schema
         self._prediction_schema = data.prediction_schema
+        if self._sim.writer is not None:
+            self._configure_writer()
         self._sim_id = data.sim_id
 
     def _on_set_properties(self, from_server):
@@ -291,6 +293,33 @@ class Simulator_WS(object):
                 self._sim._on_episode_start(self._init_properties)
             except Exception as e:
                 raise EpisodeStartError(e)
+
+    def _configure_writer(self):
+        self._sim.writer.enable_keys(
+            self._fields_for_schema(self._properties_schema), 'config')
+        self._sim.writer.enable_keys(
+            self._fields_for_schema(self._prediction_schema), 'action')
+        self._sim.writer.enable_keys(
+            self._fields_for_schema(self._output_schema), 'state')
+        self._sim.writer.enable_keys([
+            'reward',
+            'terminal',
+            'time',
+            'simulator',
+            'predict',
+            'sim_id'
+        ])
+        self._sim.writer.enable_keys([
+            'episode_reward',
+            'episode_count',
+            'episode_rate',
+            'iteration_count',
+            'iteration_rate'
+        ], 'statistics')
+
+    def _fields_for_schema(self, schema):
+        msg = self._inkling.new_message_from_proto(schema)
+        return [f.name for f in msg.DESCRIPTOR.fields]
 
     @gen.coroutine
     def close_connection(self):

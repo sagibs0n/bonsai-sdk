@@ -2,7 +2,7 @@
 
 import sys
 from configparser import RawConfigParser
-from os.path import expanduser, join
+from os.path import expanduser, join, splitext
 from os import environ
 from argparse import ArgumentParser
 import json
@@ -73,7 +73,13 @@ _LOG_HELP = \
     Using --log=all will enable all domains.
     Using --log=none will disable logging.
     """
-
+_RECORD_HELP = \
+    """
+    Enable record simulation data to a file (current) or
+    external service (not yet implemented).
+    Parameter is the target file for recorded data. Data format will be
+    inferred from the file extension. Currently supports ".json" and ".csv".
+    """
 # legacy help strings
 _TRAIN_BRAIN_HELP = "The name of the BRAIN to connect to for training."
 _PREDICT_BRAIN_HELP = \
@@ -146,6 +152,8 @@ class Config(object):
         self._proxy = None
 
         self.verbose = False
+        self.record_file = None
+        self.record_enabled = False
         self._config = self._read_config()
         self.profile = profile
 
@@ -197,6 +205,13 @@ class Config(object):
         uri = urlparse(proxy)
         uri.port
         self._proxy = proxy
+
+    @property
+    def record_format(self):
+        """ The log record format, as inferred from the extension of
+        the log filename"""
+        _, fmt = splitext(self.record_file)
+        return fmt
 
     def _parse_env(self):
         ''' parse out environment variables used in hosted containers '''
@@ -308,6 +323,8 @@ class Config(object):
         parser.add_argument('--performance', action='store_true',
                             help=_PERFORMANCE_HELP)
         parser.add_argument('--log', nargs='+', help=_LOG_HELP)
+        parser.add_argument('--record', nargs=1, default=None,
+                            help=_RECORD_HELP)
 
         args, remainder = parser.parse_known_args(argv[1:])
 
@@ -338,6 +355,10 @@ class Config(object):
         if args.log is not None:
             for domain in args.log:
                 log.set_enabled(domain)
+
+        if args.record:
+            self.record_file = args.record[0]
+            self.record_enabled = True
 
         brain_version = None
         if args.predict is not None:

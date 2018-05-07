@@ -1,10 +1,11 @@
 {
     "files": [
         "frozenlake_4x4.ink",
-        "frozenlake_simulator.py"
+        "frozenlake_simulator.py",
+        "requirements.txt"
     ],
     "training": {
         "command": "python frozenlake_simulator.py",
-        "simulator": "openai.gym.frozenlake"
+        "simulator": "bonsai.ai"
     }
 }

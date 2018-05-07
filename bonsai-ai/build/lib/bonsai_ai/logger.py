@@ -4,6 +4,28 @@ from time import time
 
 
 class Logger:
+    """
+    Entry point for runtime logging to custom and predefined domains.
+
+    Custom domains like the one defined in the following example can be
+    enabled from the command line (see `Config`) or by calling
+    `Logger.set_enabled`.
+
+    Example Usage:
+
+    ```
+    from bonsai_ai.logger import Logger
+
+    log = Logger()
+
+    def foo(*args, **kwargs):
+        log.set_enabled("mydomain")
+
+    def bar(*args, **kwargs):
+        log.mydomain("Hello, World!")
+    ```
+    """
+
     _impl = None
 
     def __init__(self):
@@ -23,7 +45,24 @@ class Logger:
             return lambda msg: None
 
     def set_enabled(self, key):
+        """
+        Enable the given logging domain.
+
+        Arguments:
+            key: `string`
+        """
         self.__class__._impl['_enabled_keys'][key] = True
 
     def set_enable_all(self, enable_all):
+        """
+        Enable or disable verbose logging.
+
+        After passing `True` to this method, any invocation of the form
+        `Logger().<domain>` will result in a printed log line, regardless of
+        whether `Logger.set_enabled` was ever called for that particular
+        domain.
+
+        Arguments:
+            enable_all: `bool`
+        """
         self.__class__._impl['_enable_all'] = enable_all

@@ -1,0 +1,14 @@
+{
+    "executable": "cartpole_simulator.py",
+    "prediction": {
+        "episodes": 0,
+        "mean": 141
+    },
+    "training": {
+        "concepts": [
+            "balance"
+        ],
+        "episodes": 100,
+        "iterations": 100
+    }
+}

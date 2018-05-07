@@ -1,0 +1,7 @@
+{
+    "executable": "lunarlander_continuous_simulator.py",
+    "prediction": {
+        "episodes": 0,
+        "mean": 0 
+    }
+}

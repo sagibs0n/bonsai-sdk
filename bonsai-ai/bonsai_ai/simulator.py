@@ -1,16 +1,15 @@
 # Copyright (C) 2018 Bonsai, Inc.
 
 import abc
-import time
-import datetime
-from collections import deque
-
+from datetime import datetime
+from time import time
 from tornado.ioloop import IOLoop
 
 from bonsai_ai.exceptions import BonsaiClientError, SimStateError, \
     BonsaiServerError
 from bonsai_ai.logger import Logger
 from bonsai_ai.simulator_ws import Simulator_WS
+from bonsai_ai.writer import JSONWriter, CSVWriter
 
 log = Logger()
 
@@ -31,7 +30,7 @@ class _RateCounter(object):
         Uses an exponetial moving average.
         """
         self.count += 1
-        delta = (time.time() - self.start)
+        delta = (time() - self.start)
         if delta is not 0:
             average = self.count / delta
             DECAY_RATE = 0.9
@@ -41,7 +40,7 @@ class _RateCounter(object):
         """ resets the counters """
         self.count = 0
         self.rate = 0
-        self.start = time.time()
+        self.start = time()
 
 
 class Simulator(object):
@@ -105,6 +104,11 @@ class Simulator(object):
     """
     __metaclass__ = abc.ABCMeta
 
+    WRITERS = {
+        '.json': JSONWriter,
+        '.csv': CSVWriter
+    }
+
     def __init__(self, brain, name):
         """
         Constructs the Simulator class.
@@ -115,6 +119,8 @@ class Simulator(object):
         """
         self.name = name
         self.brain = brain
+        self.writer = None
+        self._construct_writer()
         self._ioloop = IOLoop.current()
         self._impl = Simulator_WS(brain, self, name)
 
@@ -125,6 +131,19 @@ class Simulator(object):
         self.iteration_count = 0
         # NOTE: _iteration_rate is accumulative, not per episode
         self._iteration_rate = _RateCounter()
+
+    def _construct_writer(self):
+        def raise_rte(fname):
+            raise RuntimeError(
+                """
+                Record file name must include a supported extension
+                (.json|.csv): {}
+                """.format(fname))
+
+        if self.brain.config.record_enabled:
+            self.writer = self.WRITERS.get(
+                self.brain.config.record_format, raise_rte)(
+                    self.brain.config.record_file)
 
     def __repr__(self):
         """ Return a JSON representation of the Simulator. """
@@ -262,13 +281,72 @@ class Simulator(object):
     def standby(self, reason):
         log.info(reason)
 
+    @property
+    def record_file(self):
+        """
+        Get or set the name of the file to which analytics logs
+        should be written.
+
+        If this property is set during simulation, subsequent log entries
+        will be written to the new file.
+
+        """
+        return self.writer.record_file
+
+    @record_file.setter
+    def record_file(self, new_file):
+        self.writer.record_file = new_file
+
+    def enable_keys(self, keys, prefix=None):
+        """
+        Adds the given keys to the log schema for the active writer.
+        If one is provided, the prefix will be prepended to those keys and
+        they will appear as such in the resulting logs.
+        If recording is not enabled, this method has no effect.
+
+        You should enable any keys you expect to see in the logs. If you
+        attempt to insert objects containing keys which have not been
+        enabled, those keys will be silently ignored.
+
+        Arguments:
+            keys: The keys to enable.
+            prefix: Prepended to each item in `keys`. As in `<prefix>.<key>`.
+
+        Returns:
+            None
+        """
+        if self.writer is not None:
+            self.writer.enable_keys(keys, prefix)
+
+    def record_append(self, obj, prefix=None):
+        """
+        This function adds the given dictionary to the currently buffered
+        log line, prepending `prefix` to each key (`<prefix>.<key>`) before
+        doing so. If recording is not enabled, this method has no effect.
+
+        If a particular key is not enabled for the active writer, it will
+        be silently ignored. This has no effect on the inclusion of other
+        keys in the given dictionary.
+
+        Arguments:
+            obj: The dictionary to add.
+            prefix: Prepended to each key in `object`. As in `<prefix>.<key>`.
+        """
+        if self.writer is not None:
+            self.writer.add(obj, prefix)
+
     def _on_episode_start(self, episode_config):
         """ Callback hook for episode_start, called by event dispatcher """
         # update counters
         self.iteration_count = 0
         self.episode_reward = 0
 
-        return self.episode_start(episode_config)
+        init_state = self.episode_start(episode_config)
+
+        if self.writer is not None:
+            self._record_state(init_state, config=episode_config)
+
+        return init_state
 
     def _on_simulate(self, action):
         """ Callback hook for simulate, called by event dispatcher. """
@@ -279,6 +357,10 @@ class Simulator(object):
         # step
         state, reward, terminal = self.simulate(action)
         self.episode_reward += reward
+
+        if self.writer is not None:
+            self._record_state(state, action, reward, terminal)
+
         return state, reward, terminal
 
     def _on_episode_finish(self):
@@ -289,6 +371,34 @@ class Simulator(object):
 
         # userland callback
         self.episode_finish()
+
+    def _record_state(self, state, action={}, reward=None,
+                      terminal=None, config={}):
+        self.writer.add(config, 'config')
+        self.writer.add(action, 'action')
+        self.writer.add(state, 'state')
+        self.writer.add({
+            'reward': reward,
+            'terminal': terminal,
+            'predict': self.predict,
+            'time': self._now(),
+            'simulator': self.name,
+            'sim_id': self._impl._sim_id
+        })
+        self.writer.add({
+            'episode_reward': self.episode_reward,
+            'episode_count': self.episode_count,
+            'episode_rate': self.episode_rate,
+            'iteration_count': self.iteration_count,
+            'iteration_rate': self.iteration_rate
+        }, 'statistics')
+
+        print(self.writer._current_record)
+        self.writer.write()
+
+    def _now(self):
+        return datetime.fromtimestamp(
+            time()).strftime("%Y-%m-%d %H:%M:%S")
 
     def run(self):
         """
@@ -312,17 +422,20 @@ class Simulator(object):
                 continue
         """
         try:
+            success = False
             success = self._ioloop.run_sync(self._impl.run, 1000)
         except KeyboardInterrupt:
-            success = False
+            pass
         except BonsaiClientError as e:
             log.error(e)
             raise e.original_exception
         except BonsaiServerError as e:
             log.error(e)
-            success = False
         except SimStateError as e:
             log.error(e)
             raise e
+        finally:
+            if not success and self.writer is not None:
+                self.writer.close()
 
         return success

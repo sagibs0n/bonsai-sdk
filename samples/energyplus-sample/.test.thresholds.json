@@ -1,0 +1,14 @@
+{
+    "executable": "energyplus_simulator.py",
+    "prediction": {
+        "episodes": 0,
+        "mean": 0 
+    },
+    "training": {
+        "concepts": [
+            "my_concept"
+        ],
+        "episodes": 1,
+        "iterations": 100
+    }
+}

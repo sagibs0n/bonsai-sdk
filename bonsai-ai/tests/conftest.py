@@ -18,6 +18,7 @@ from ws import open_bonsai_ws, close_bonsai_ws
 class CartSim(Simulator):
     def episode_start(self, parameters):
         print('episode_start:', parameters)
+        self.record_append({'foo': 23}, 'bar')
         initial = {
             "position": 1.0,
             "velocity": 0.0,
@@ -28,6 +29,7 @@ class CartSim(Simulator):
 
     def simulate(self, action):
         print('simulate:', action)
+        self.record_append({'foo': 23}, 'bar')
         terminal = True
         state = {
             "position": 1.0,
@@ -106,6 +108,32 @@ def blank_brain():
 
 
 @pytest.fixture
+def record_json_config():
+    return Config([
+        __name__,
+        '--accesskey=VALUE',
+        '--username=alice',
+        '--url=http://localhost:8889',
+        '--brain=cartpole',
+        '--proxy=VALUE',
+        '--record=foobar.json'
+    ])
+
+
+@pytest.fixture
+def record_csv_config():
+    return Config([
+        __name__,
+        '--accesskey=VALUE',
+        '--username=alice',
+        '--url=http://localhost:8889',
+        '--brain=cartpole',
+        '--proxy=VALUE',
+        '--record=foobar.csv'
+    ])
+
+
+@pytest.fixture
 def train_config():
     return Config([
         __name__,
@@ -136,6 +164,22 @@ def logging_config():
         __name__,
         '--log', 'foo', 'baz'
     ])
+
+
+@pytest.fixture
+def record_json_sim(record_json_config):
+    brain = Brain(record_json_config)
+    sim = CartSim(brain, 'cartpole_simulator')
+    sim.enable_keys(['foo'], 'bar')
+    return sim
+
+
+@pytest.fixture
+def record_csv_sim(record_csv_config):
+    brain = Brain(record_csv_config)
+    sim = CartSim(brain, 'cartpole_simulator')
+    sim.enable_keys(['foo'], 'bar')
+    return sim
 
 
 @pytest.fixture

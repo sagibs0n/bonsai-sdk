@@ -12,7 +12,7 @@ setup(
     name="bonsai-ai",
     version=version['__version__'],
     description="Simulator interface library for Bonsai AI platform v2",
-    long_description=open('README.md').read(),
+    long_description=open('README.rst').read(),
     # url='http://github.com/BonsaiAI/bonsai-python',
     url="http://bons.ai",
     author="Bonsai, Inc.",
@@ -34,8 +34,7 @@ setup(
         'protobuf>=3.0.0,<4',
         'tornado==4.5.3',
         'requests>=2.11',
-        'configparser>=3.5.0',
-        'bonsai-cli>=0.8.22'
+        'configparser>=3.5.0'
     ],
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, '
                     '!=3.3.*, !=3.4.*',

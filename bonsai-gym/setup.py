@@ -14,9 +14,10 @@ setup(
     version=version['__version__'],
     description="A python library for integrating Bonsai BRAIN \
     with Open AI Gym environments.",
-    long_description=open('README.md').read(),
+    long_description=open('README.rst').read(),
     url="http://bons.ai",
     author="Bonsai, Inc.",
+    author_email='opensource@bons.ai',
     license="BSD",
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -32,7 +33,7 @@ setup(
 
     install_requires=[
         'bonsai-ai>=2.0.0',
-        'gym==0.9.5'
+        'gym==0.9.7'
     ],
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, '
                     '!=3.3.*, !=3.4.*',

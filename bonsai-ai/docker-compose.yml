@@ -1,0 +1,11 @@
+version: '2'
+services:
+
+  bonsai_ai:
+    image: test-bonsai-ai
+    build:
+      dockerfile: src/sdk2/bonsai-ai/Dockerfile.test
+      context: ../../..
+    tty: true
+    entrypoint: bash
+    network_mode: none

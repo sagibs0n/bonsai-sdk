@@ -1,0 +1,14 @@
+{
+    "executable": "acrobot_simulator.py",
+    "prediction": {
+        "episodes": 100,
+        "mean": -95
+    },
+    "training": {
+        "concepts": [
+            "height"
+        ],
+        "episodes": 100,
+        "iterations": 100
+    }
+}
