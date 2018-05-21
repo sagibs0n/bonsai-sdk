@@ -16,7 +16,7 @@ from bonsai_ai.proto.generator_simulator_api_pb2 import SimulatorToServer
 # bonsai
 from bonsai_ai.common.state_to_proto import convert_state_to_proto
 from bonsai_ai.exceptions import SimulateError, EpisodeStartError, \
-    BonsaiServerError
+    BonsaiServerError, EpisodeFinishError
 
 from bonsai_ai.inkling_factory import InklingMessageFactory
 from bonsai_ai.logger import Logger
@@ -64,6 +64,7 @@ class Simulator_WS(object):
 
         # current batch of simulation steps
         self._sim_steps = []
+        self._prev_step_terminal = False
 
         # Caching actions for predictor
         self._predictor_action = None
@@ -151,6 +152,7 @@ class Simulator_WS(object):
         state.state = state_message.SerializeToString()
         state.reward = 0.0
         state.terminal = False
+        self._prev_step_terminal = state.terminal
         # state.action_taken = ... # no-op for init state
 
     def _send_state(self, to_server):
@@ -205,7 +207,10 @@ class Simulator_WS(object):
         pass
 
     def _on_stop(self, from_server):
-        self._sim._on_episode_finish()
+        # fire the finished message if the previous step wasn't terminal
+        # as it will already have been called
+        if not self._prev_step_terminal:
+            self._sim._on_episode_finish()
 
     def _on_finished(self, from_server):
         pass
@@ -219,7 +224,8 @@ class Simulator_WS(object):
         ''' message handler for sending messages to the server '''
         method_name = self._dispatch_send.get(
             self._prev_message_type, 'default')
-        method = getattr(self, method_name, lambda: log.simulator("Finished"))
+        method = getattr(self, method_name,
+                         lambda x: log.simulator("Finished"))
         method(to_server)
 
     def _on_recv(self, from_server):
@@ -274,25 +280,52 @@ class Simulator_WS(object):
         log.simulator_ws('Advancing')
         action_message = self._inkling.message_for_dynamic_message(
             step.prediction, self._prediction_schema)
+        log.simulator("action: {}".format(MessageToJson(action_message)))
         action = self._dict_for_message(action_message)
 
-        try:
-            state, reward, terminal = self._sim._on_simulate(action)
-        except Exception as e:
-            raise SimulateError(e)
+        # for this step...
+        state = None
+        reward = 0.0
+        terminal = False
 
+        # previous state was terminal, synthesize a new episode start
+        if self._prev_step_terminal:
+            try:
+                state = self._sim._on_episode_start(self._init_properties)
+                self._prev_step_terminal = False
+
+                log.simulator_ws('\tES')
+            except Exception as e:
+                raise EpisodeStartError(e)
+
+        # single step
+        else:
+            try:
+                state, reward, terminal = self._sim._on_simulate(action)
+                reward = float(reward)
+                terminal = bool(terminal)  # convert from 1:0 to True:False
+
+                log.simulator_ws('\tT' if terminal else '\tS')
+            except Exception as e:
+                raise SimulateError(e)
+
+        # package up response
         state_message = self._new_state_message()
         convert_state_to_proto(state_message, state)
-        log.simulator("{}".format(MessageToJson(state_message)))
+        log.simulator("state: {}".format(MessageToJson(state_message)))
         step.state = state_message
         step.reward = reward
         step.terminal = terminal
+
+        # set a flag to know if we should synthesize a start on the next step
         if terminal:
             try:
                 self._sim._on_episode_finish()
-                self._sim._on_episode_start(self._init_properties)
+                self._prev_step_terminal = True
+
+                log.simulator_ws('\tF')
             except Exception as e:
-                raise EpisodeStartError(e)
+                raise EpisodeFinishError(e)
 
     def _configure_writer(self):
         self._sim.writer.enable_keys(
@@ -339,15 +372,15 @@ class Simulator_WS(object):
                 raise BonsaiServerError(
                     "Error while connecting to websocket: {}".format(message))
 
-        # If there is a batch of predictions cued up, step through it
+        # advance through N predictions
         if self._prev_message_type == ServerToSimulator.PREDICTION:
             for step in self._sim_steps:
                 self._advance(step)
 
         # send message to server
         to_server = SimulatorToServer()
-
         self._on_send(to_server)
+        log.pb("to_server: {}".format(MessageToJson(to_server)))
 
         if (to_server.message_type):
             out_bytes = to_server.SerializeToString()
@@ -367,6 +400,7 @@ class Simulator_WS(object):
 
         from_server = ServerToSimulator()
         from_server.ParseFromString(in_bytes)
+        log.pb("from_server: {}".format(MessageToJson(from_server)))
         self._on_recv(from_server)
 
         if self._prev_message_type == ServerToSimulator.FINISHED:

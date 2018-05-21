@@ -118,3 +118,26 @@ def test_file_change(record_csv_sim, tmpdir):
 
     os.remove("./sub/bazqux.csv")
     os.rmdir("sub")
+
+
+def test_predict_mode_record(record_csv_predict, tmpdir):
+    os.mkdir("sub")
+    rcp = record_csv_predict
+    while rcp._impl._prev_message_type != ServerToSimulator.FINISHED:
+        rcp.run()
+
+    assert os.path.exists(rcp.brain.config.record_file)
+
+    with io.open(rcp.brain.config.record_file, newline='') as f:
+        reader = csv.reader(f)
+        try:
+            # python 2
+            header = reader.next()
+        except Exception as e:
+            # python 3
+            header = next(reader)
+
+        assert 'sim_id' in header
+
+    os.remove(rcp.brain.config.record_file)
+    os.rmdir("sub")

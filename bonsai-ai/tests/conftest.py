@@ -1,9 +1,12 @@
 # Copyright (C) 2018 Bonsai, Inc.
 
+from __future__ import print_function
 import os
 import pytest
 import requests
 import time
+from random import randint
+from tornado.ioloop import IOLoop
 
 try:
     from unittest.mock import Mock
@@ -79,6 +82,61 @@ class LuminanceSim(Simulator):
         return True
 
 
+class SequencingSim(Simulator):
+    def __init__(self, brain, name):
+        super(SequencingSim, self).__init__(brain, name)
+        self.last_step_type = None
+
+    def episode_start(self, parameters):
+        print('\n\nES{}'.format(self.episode_count), end=' ')
+        assert(self.last_step_type is None or
+               self.last_step_type == 'F')
+        self.last_step_type = 'E'
+
+        initial = {
+            "position": 1.0,
+            "velocity": 0.0,
+            "angle": 0.0,
+            "rotation": 0.0
+        }
+        return initial
+
+    def simulate(self, action):
+        state = {
+            "position": 1.0,
+            "velocity": 0.0,
+            "angle": 0.0,
+            "rotation": 0.0
+        }
+
+        # Randomly return terminal condition
+        terminal = bool(randint(0, 1))
+        if terminal:
+            # Test for double terminate calls
+            print('T{}'.format(self.iteration_count), end=' ')
+            assert(self.last_step_type != 'T')
+            self.last_step_type = 'T'
+        else:
+            # Test for terminal before step
+            print('S{}'.format(self.iteration_count), end=' ')
+            assert(self.last_step_type != 'T')
+            self.last_step_type = 'S'
+
+        return (state, 1.0, terminal)
+
+    def episode_finish(self):
+        print('F', end=' ')
+        # previous step can be a Terminal, Step or EStart
+        # but not another finished
+        assert(self.last_step_type != 'F')
+        self.last_step_type = 'F'
+
+    def standby(self, reason):
+        print('standby:' + reason)
+        time.sleep(1)
+        return True
+
+
 @pytest.fixture(autouse=True)
 def mock_get(monkeypatch):
     def _get(*args, **kwargs):
@@ -134,6 +192,20 @@ def record_csv_config():
 
 
 @pytest.fixture
+def record_csv_config_predict():
+    return Config([
+        __name__,
+        '--accesskey=VALUE',
+        '--username=alice',
+        '--url=http://localhost:8889',
+        '--brain=cartpole',
+        '--proxy=VALUE',
+        '--record=foobar.csv',
+        '--predict=4'
+    ])
+
+
+@pytest.fixture
 def train_config():
     return Config([
         __name__,
@@ -142,6 +214,7 @@ def train_config():
         '--url=http://localhost:8889',
         '--brain=cartpole',
         '--proxy=VALUE',
+        '--log pb'
     ])
 
 
@@ -171,6 +244,7 @@ def record_json_sim(record_json_config):
     brain = Brain(record_json_config)
     sim = CartSim(brain, 'cartpole_simulator')
     sim.enable_keys(['foo'], 'bar')
+    sim._ioloop = IOLoop.current()
     return sim
 
 
@@ -179,6 +253,16 @@ def record_csv_sim(record_csv_config):
     brain = Brain(record_csv_config)
     sim = CartSim(brain, 'cartpole_simulator')
     sim.enable_keys(['foo'], 'bar')
+    sim._ioloop = IOLoop.current()
+    return sim
+
+
+@pytest.fixture
+def record_csv_predict(record_csv_config_predict):
+    brain = Brain(record_csv_config_predict)
+    sim = CartSim(brain, 'cartpole_simulator')
+    sim.enable_keys(['foo'], 'bar')
+    sim._ioloop = IOLoop.current()
     return sim
 
 
@@ -186,6 +270,7 @@ def record_csv_sim(record_csv_config):
 def train_sim(train_config):
     brain = Brain(train_config)
     sim = CartSim(brain, 'cartpole_simulator')
+    sim._ioloop = IOLoop.current()
     return sim
 
 
@@ -193,6 +278,15 @@ def train_sim(train_config):
 def predict_sim(predict_config):
     brain = Brain(predict_config)
     sim = CartSim(brain, 'cartpole_simulator')
+    sim._ioloop = IOLoop.current()
+    return sim
+
+
+@pytest.fixture
+def sequence_sim(train_config):
+    brain = Brain(train_config)
+    sim = SequencingSim(brain, 'cartpole_simulator')
+    sim._ioloop = IOLoop.current()
     return sim
 
 
@@ -200,6 +294,7 @@ def predict_sim(predict_config):
 def predictor(predict_config):
     brain = Brain(predict_config)
     predictor = Predictor(brain, 'cartpole_simulator')
+    predictor._ioloop = IOLoop.current()
     return predictor
 
 
@@ -207,6 +302,7 @@ def predictor(predict_config):
 def predictor_with_train_config(train_config):
     brain = Brain(train_config)
     predictor = Predictor(brain, 'cartpole_simulator')
+    predictor._ioloop = IOLoop.current()
     return predictor
 
 
@@ -214,6 +310,7 @@ def predictor_with_train_config(train_config):
 def luminance_sim(train_config):
     brain = Brain(train_config)
     sim = LuminanceSim(brain, 'random_simulator')
+    sim._ioloop = IOLoop.current()
     return sim
 
 

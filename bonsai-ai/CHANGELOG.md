@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.7
+- Fixed sequencing in prediction mode after terminal conditions.
+- Fixed IOLoop collision when running in Jupyter
+- Reliability improvements in analytics recorder
+
 ## 2.0.6
 - Recording file controllable on a per-Sim basis
 - Adds a mechanism to uniformly record simulation data to a file

@@ -121,7 +121,7 @@ class Simulator(object):
         self.brain = brain
         self.writer = None
         self._construct_writer()
-        self._ioloop = IOLoop.current()
+        self._ioloop = IOLoop()
         self._impl = Simulator_WS(brain, self, name)
 
         # statistics
@@ -291,11 +291,13 @@ class Simulator(object):
         will be written to the new file.
 
         """
-        return self.writer.record_file
+        if self.writer is not None:
+            return self.writer.record_file
 
     @record_file.setter
     def record_file(self, new_file):
-        self.writer.record_file = new_file
+        if self.writer is not None:
+            self.writer.record_file = new_file
 
     def enable_keys(self, keys, prefix=None):
         """
@@ -393,7 +395,6 @@ class Simulator(object):
             'iteration_rate': self.iteration_rate
         }, 'statistics')
 
-        print(self.writer._current_record)
         self.writer.write()
 
     def _now(self):

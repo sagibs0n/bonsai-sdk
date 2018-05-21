@@ -17,6 +17,11 @@ class EpisodeStartError(BonsaiClientError):
         super(EpisodeStartError, self).__init__("Error in episode_start", e)
 
 
+class EpisodeFinishError(BonsaiClientError):
+    def __init__(self, e):
+        super(EpisodeFinishError, self).__init__("Error in episode_finish", e)
+
+
 class BonsaiServerError(Exception):
     pass
 

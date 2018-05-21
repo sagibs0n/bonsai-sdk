@@ -4,10 +4,12 @@ import logging
 import os
 from time import sleep, time
 from bonsai_ai import Simulator, Brain, Config
+from bonsai_ai.logger import Logger
 import sys
 
 # log = logging.getLogger(__name__)
 log = logging.getLogger('gym_simulator')
+_log = Logger()
 
 
 class GymSimulator(Simulator):
@@ -45,6 +47,10 @@ class GymSimulator(Simulator):
         # optional parameters for controlling the simulation
         self._headless = cli_args.headless
         self._iteration_limit = iteration_limit    # default is no limit
+
+        # random seed
+        self._env.seed(20)
+        self._env.reset()
 
         # book keeping for rate status
         self._log_interval = 10.0  # seconds
@@ -86,6 +92,7 @@ class GymSimulator(Simulator):
         to provide additional initialization.
         """
         observation = self._env.reset()
+        _log.gym('start state: ' + str(observation))
         return observation
 
     def episode_start(self, parameters):
@@ -118,10 +125,16 @@ class GymSimulator(Simulator):
         gym_action = self.action_to_gym(action)
         observation, reward, done, info = self.gym_simulate(gym_action)
 
+        _log.gym('step action:' + str(gym_action) +
+                 ' state:' + str(observation) +
+                 ' reward:' + str(reward) +
+                 ' done:' + str(done))
+
         # episode limits
         if (self._iteration_limit > 0):
             if (self.iteration_count >= self._iteration_limit):
                 done = True
+                _log.gym('iteration_limit reached.')
 
         # render if not headless
         if not self._headless:
@@ -136,9 +149,12 @@ class GymSimulator(Simulator):
         return state, reward, done
 
     def episode_finish(self):
+        # print('\n')
         # log how this episode went
         log.info("Episode %s reward is %s",
                  self.episode_count, self.episode_reward)
+        _log.gym('finish episode: ' + str(self.episode_count) +
+                 ' reward: ' + str(self.episode_reward))
         self._last_status = time()
 
     def standby(self, reason):

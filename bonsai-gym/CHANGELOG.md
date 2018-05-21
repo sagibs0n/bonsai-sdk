@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.5
+- fix sequencing problem in bonsai_ai around T to ES transitions
+
 ## 2.0.4
 - change README files to use reStructuredText instead of Markdown, per pip standards
 - T5425: Updating bonsai-gym version for gym to 0.9.7

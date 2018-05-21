@@ -115,7 +115,7 @@ def open_bonsai_ws(protocol):
 
 
 def close_bonsai_ws():
-    loop = ioloop.IOLoop.instance()
+    loop = ioloop.IOLoop.current()
     loop.add_callback(loop.stop)
     loop.start()
 
@@ -123,6 +123,5 @@ def close_bonsai_ws():
 if __name__ == "__main__":
     try:
         open_bonsai_ws(sys.argv[1])
-        ioloop.IOLoop.instance().start()
     except KeyboardInterrupt:
         close_bonsai_ws()
