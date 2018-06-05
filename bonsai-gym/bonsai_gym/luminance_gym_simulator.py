@@ -3,6 +3,10 @@ from bonsai_gym import GymSimulator
 
 
 class LuminanceGymSimulator(GymSimulator):
+    def episode_finish(self):
+        print("Episode {} reward: {}".format(
+            self.episode_count, self.episode_reward))
+
     def gym_to_state(self, observation):
         """
         Calculates the luminance of the values for the image and

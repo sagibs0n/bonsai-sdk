@@ -26,3 +26,4 @@ def test_enable_all(capsys, logging_config):
     out, err = capsys.readouterr()
     assert out == ''
     assert err.find("[spam] eggs\n") >= 0
+    log.set_enable_all(False)

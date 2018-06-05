@@ -123,8 +123,10 @@ def test_file_change(record_csv_sim, tmpdir):
 def test_predict_mode_record(record_csv_predict, tmpdir):
     os.mkdir("sub")
     rcp = record_csv_predict
-    while rcp._impl._prev_message_type != ServerToSimulator.FINISHED:
+    sim_steps = 100
+    while sim_steps:
         rcp.run()
+        sim_steps -= 1
 
     assert os.path.exists(rcp.brain.config.record_file)
 

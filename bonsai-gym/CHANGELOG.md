@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.6
+- Adds episode_finish to LuminanceGymSimulator
+
 ## 2.0.5
 - fix sequencing problem in bonsai_ai around T to ES transitions
 

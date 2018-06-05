@@ -1,2 +1,2 @@
 simpy
-bonsai-ai
+bonsai-ai>=2.0.6

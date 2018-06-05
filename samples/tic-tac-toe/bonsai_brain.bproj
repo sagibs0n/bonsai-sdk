@@ -1,0 +1,10 @@
+{
+    "files": [
+        "tictactoe.ink",
+        "tictactoe_simulator.py"
+    ],
+    "training": {
+        "command": "python tictactoe_simulator.py",
+        "simulator": "bonsai.python"
+    }
+}

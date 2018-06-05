@@ -4,7 +4,6 @@
 # pylint: disable=too-many-function-args
 
 import os
-import pytest
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
 from bonsai_ai.proto.generator_simulator_api_pb2 import SimulatorToServer
 
@@ -33,9 +32,10 @@ def test_luminance_sim(luminance_sim):
     assert luminance_sim._impl._prev_message_type == \
         ServerToSimulator.START
 
-    assert luminance_sim.run() is True
-    assert luminance_sim._impl._prev_message_type == \
-        ServerToSimulator.PREDICTION
+    for i in range(0, 15):
+        assert luminance_sim.run() is True
+        assert luminance_sim._impl._prev_message_type == \
+            ServerToSimulator.PREDICTION
 
     assert luminance_sim.run() is True
     assert luminance_sim._impl._prev_message_type == \
@@ -53,8 +53,8 @@ def test_luminance_pack(luminance_sim):
         assert luminance_sim.run() is True
 
     # process incoming predictions manually
-    for step in luminance_sim._impl._sim_steps:
-        luminance_sim._impl._advance(step)
+    for step in luminance_sim._impl._sim_steps[:-1]:
+        luminance_sim.run()
 
     # pack the resulting states into a message for the server, serialize
     # it, but don't send it

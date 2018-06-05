@@ -26,9 +26,10 @@ def test_train(train_sim):
     assert train_sim._impl._prev_message_type == \
         ServerToSimulator.START
 
-    assert train_sim.run() is True
-    assert train_sim._impl._prev_message_type == \
-        ServerToSimulator.PREDICTION
+    for i in range(0, 5):
+        assert train_sim.run() is True
+        assert train_sim._impl._prev_message_type == \
+            ServerToSimulator.PREDICTION
 
     assert train_sim.run() is True
     assert train_sim._impl._prev_message_type == \
@@ -44,19 +45,12 @@ def test_predict(predict_sim):
     assert predict_sim._impl._prev_message_type == \
         ServerToSimulator.ACKNOWLEDGE_REGISTER
 
-    assert predict_sim.run() is True
-    assert predict_sim._impl._prev_message_type == \
-        ServerToSimulator.PREDICTION
-
-    assert predict_sim.run() is True
-    assert predict_sim._impl._prev_message_type == \
-        ServerToSimulator.STOP
-
-    # This is slightly bogus in that FINISHED doesn't usually get sent
-    # Seems a decent opportunity to test client side handling
-    assert predict_sim.run() is False
-    assert predict_sim._impl._prev_message_type == \
-        ServerToSimulator.FINISHED
+    # run through the whole pile of actions twice to ensure
+    # that we stay in the prediction loop
+    for i in range(0, 10):
+        assert predict_sim.run() is True
+        assert predict_sim._impl._prev_message_type == \
+            ServerToSimulator.PREDICTION
 
 
 def test_sim_run(train_sim):

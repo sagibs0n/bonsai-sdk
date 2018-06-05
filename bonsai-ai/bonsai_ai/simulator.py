@@ -363,7 +363,7 @@ class Simulator(object):
         if self.writer is not None:
             self._record_state(state, action, reward, terminal)
 
-        return state, reward, terminal
+        return state, float(reward), bool(terminal)
 
     def _on_episode_finish(self):
         """ Callback hook for end of episode, called by event dispatcher. """
@@ -400,6 +400,45 @@ class Simulator(object):
     def _now(self):
         return datetime.fromtimestamp(
             time()).strftime("%Y-%m-%d %H:%M:%S")
+
+    def close(self):
+        """ Closes websocket Connection """
+        self._impl.close_connection()
+
+    def get_next_event(self):
+        """
+        Advance the SDK's internal state machine and return an event for
+        processing.
+
+        Returns:
+            an instance of `Event`
+
+        Example:
+            event = self.get_next_event()
+            if isinstance(event, EpisodeStartEvent):
+                # do something
+            elif isinstance(event, SimulateEvent):
+                # do something else
+            elif isinstance(event, EpisodeFinishEvent):
+                # book keeping
+            else:
+                # do nothing
+        """
+        try:
+            event = None
+            event = self._ioloop.run_sync(self._impl.get_next_event, 1000)
+        except KeyboardInterrupt:
+            pass
+        except BonsaiClientError as e:
+            log.error(e)
+            raise e.original_exception
+        except BonsaiServerError as e:
+            log.error(e)
+        except SimStateError as e:
+            log.error(e)
+            raise e
+
+        return event
 
     def run(self):
         """

@@ -15,7 +15,7 @@ except ImportError:
 
 
 from bonsai_ai import Simulator, Brain, Config, Luminance, Predictor
-from ws import open_bonsai_ws, close_bonsai_ws
+from ws import open_bonsai_ws, close_bonsai_ws, set_predict_mode
 
 
 class CartSim(Simulator):
@@ -86,6 +86,16 @@ class SequencingSim(Simulator):
     def __init__(self, brain, name):
         super(SequencingSim, self).__init__(brain, name)
         self.last_step_type = None
+        self._n = 0
+
+    def _generate_terminal(self):
+        self._n += 1
+        if self._n % 5 == 0:
+            yield 1
+        elif self._n % 2 == 0:
+            yield 1
+        else:
+            yield 0
 
     def episode_start(self, parameters):
         print('\n\nES{}'.format(self.episode_count), end=' ')
@@ -110,7 +120,7 @@ class SequencingSim(Simulator):
         }
 
         # Randomly return terminal condition
-        terminal = bool(randint(0, 1))
+        terminal = next(self._generate_terminal())
         if terminal:
             # Test for double terminate calls
             print('T{}'.format(self.iteration_count), end=' ')
@@ -193,6 +203,7 @@ def record_csv_config():
 
 @pytest.fixture
 def record_csv_config_predict():
+    set_predict_mode(True)
     return Config([
         __name__,
         '--accesskey=VALUE',
@@ -214,12 +225,12 @@ def train_config():
         '--url=http://localhost:8889',
         '--brain=cartpole',
         '--proxy=VALUE',
-        '--log pb'
     ])
 
 
 @pytest.fixture
 def predict_config():
+    set_predict_mode(True)
     return Config([
         __name__,
         '--accesskey=VALUE',
@@ -285,6 +296,14 @@ def predict_sim(predict_config):
 @pytest.fixture
 def sequence_sim(train_config):
     brain = Brain(train_config)
+    sim = SequencingSim(brain, 'cartpole_simulator')
+    sim._ioloop = IOLoop.current()
+    return sim
+
+
+@pytest.fixture
+def pr_sequence_sim(predict_config):
+    brain = Brain(predict_config)
     sim = SequencingSim(brain, 'cartpole_simulator')
     sim._ioloop = IOLoop.current()
     return sim

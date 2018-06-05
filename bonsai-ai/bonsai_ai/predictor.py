@@ -1,8 +1,6 @@
 from bonsai_ai import Simulator
 from bonsai_ai.logger import Logger
-from bonsai_ai.simulator_ws import Simulator_WS
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
-from tornado.ioloop import IOLoop
 
 log = Logger()
 
@@ -61,8 +59,6 @@ class Predictor(Simulator):
         self._state = None
 
     def __enter__(self):
-        if self._impl._prev_message_type == ServerToSimulator.UNKNOWN:
-            self._ioloop.run_sync(self._impl.run, 1000)
         return self
 
     def __exit__(self, *args):
@@ -83,14 +79,10 @@ class Predictor(Simulator):
     def get_action(self, state):
         """ Returns an action for a given state """
         if self._impl._prev_message_type == ServerToSimulator.UNKNOWN:
-            self._ioloop.run_sync(self._impl.run, 1000)
+            self.run()
 
         self._state = state
 
-        self._ioloop.run_sync(self._impl.run, 1000)
+        self.run()
 
         return self._impl._predictor_action
-
-    def close(self):
-        """ Closes websocket Connection """
-        self._impl.close_connection()

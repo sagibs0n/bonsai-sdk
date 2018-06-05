@@ -3,7 +3,6 @@
 # pylint: disable=missing-docstring
 # pylint: disable=too-many-function-args
 import pytest
-from conftest import CartSim
 
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
 from bonsai_ai.common.state_to_proto import SimStateError
@@ -18,7 +17,7 @@ def test_predictor(predictor, bonsai_ws):
 
     with predictor:
         assert predictor._impl._prev_message_type == \
-            ServerToSimulator.ACKNOWLEDGE_REGISTER
+            ServerToSimulator.UNKNOWN
 
         action = predictor.get_action(state)
         assert action is not None
@@ -35,15 +34,14 @@ def test_predictor_invalid_state(predictor, bonsai_ws):
 
     with predictor:
         assert predictor._impl._prev_message_type == \
-            ServerToSimulator.ACKNOWLEDGE_REGISTER
-
-        action = predictor.get_action(state)
+            ServerToSimulator.UNKNOWN
+        predictor.get_action(state)
 
 
 @pytest.mark.xfail(raises=(BonsaiServerError))
 def test_predictor_with_train_config(predictor_with_train_config):
     with predictor_with_train_config:
-        predictor_with_train_config.get_action()
+        predictor_with_train_config.get_action(None)
 
 
 def test_predictor_predict_flag(predictor):

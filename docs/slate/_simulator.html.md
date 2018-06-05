@@ -467,6 +467,43 @@ if __name__ == "__main__":
 | `obj`      | A dictionary containing data to be added to the current log entry. |
 | `prefix`   | String prefix for the keys in `obj`. |
 
+## get_next_event()
+Advance the SDK's internal state machine and return an event for processing.
+
+This is the primary entrypoint for the "Event Pump" interface. With this,
+custom run loop implementations are possible in user code. Rather than calling
+`Simulator.run` in a loop, communication between simulation code and Bonsai backend
+can be accomplished step by step.
+
+```python
+if __name__ == "__main__":
+    config = Config(sys.argv)
+    brain = Brain(config)
+    sim = MySimulator(brain)
+    
+    while True:
+        event = sim.get_next_event()
+        if isinstance(event, EpisodeStartEvent):
+            state = sim.episode_start(event.initial_properties)
+            event.initial_state = state
+        elif isinstance(event, SimulateEvent):
+            state, reward, terminal = sim.simulate(event.action)
+            event.state = state
+            event.reward = float(reward)
+            event.terminal = bool(terminal)
+        elif isinstance(event, EpisodeFinishEvent):
+            sim.episode_finish()
+        elif isinstance(event, FinishedEvent):
+            sim.close()
+            break
+        elif isinstance(event, UnknownEvent):
+            pass
+```
+
+## close()
+
+Close the internal websocket.
+
 ## operator<<(ostream, simulator)
 
 Prints out a representation of Simulator that is useful for debugging.

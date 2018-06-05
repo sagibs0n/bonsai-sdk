@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.8
+- Event pump API (feature parity with libbonsai)
+
 ## 2.0.7
 - Fixed sequencing in prediction mode after terminal conditions.
 - Fixed IOLoop collision when running in Jupyter

@@ -30,6 +30,7 @@ class BonsaiWS(websocket.WebSocketHandler):
     Super handy!
     '''
     _PROTOCOL_FILE = "proto_bin/cartpole_wire.json"
+    _PREDICT = False
 
     _prev = ServerToSimulator.UNKNOWN
     _dispatch = {
@@ -38,7 +39,6 @@ class BonsaiWS(websocket.WebSocketHandler):
         },
         ServerToSimulator.ACKNOWLEDGE_REGISTER: {
             SimulatorToServer.READY: ServerToSimulator.SET_PROPERTIES,
-            SimulatorToServer.STATE: ServerToSimulator.PREDICTION
         },
         ServerToSimulator.SET_PROPERTIES: {
             SimulatorToServer.READY: ServerToSimulator.START
@@ -51,17 +51,33 @@ class BonsaiWS(websocket.WebSocketHandler):
         },
         ServerToSimulator.STOP: {
             SimulatorToServer.READY: ServerToSimulator.RESET,
-            SimulatorToServer.STATE: ServerToSimulator.FINISHED
         },
         ServerToSimulator.RESET: {
             SimulatorToServer.READY: ServerToSimulator.SET_PROPERTIES
         }
     }
+
+    _dispatch_pred = {
+        ServerToSimulator.UNKNOWN: {
+            SimulatorToServer.REGISTER: ServerToSimulator.ACKNOWLEDGE_REGISTER
+        },
+        ServerToSimulator.ACKNOWLEDGE_REGISTER: {
+            SimulatorToServer.STATE: ServerToSimulator.PREDICTION
+        },
+        ServerToSimulator.PREDICTION: {
+            SimulatorToServer.STATE: ServerToSimulator.PREDICTION
+        },
+    }
+
     _message_data = None
 
     def _dispatch_mtype(self, incoming):
-        return self._dispatch.get(self._prev, {}).get(
-            incoming, ServerToSimulator.UNKNOWN)
+        if self._PREDICT:
+            return self._dispatch_pred.get(self._prev, {}).get(
+                incoming, ServerToSimulator.UNKNOWN)
+        else:
+            return self._dispatch.get(self._prev, {}).get(
+                incoming, ServerToSimulator.UNKNOWN)
 
     def _validate_message(self, msg):
         ''' Add code here to confirm messages have been correctly
@@ -110,8 +126,13 @@ application = web.Application([
 
 
 def open_bonsai_ws(protocol):
+    set_predict_mode(False)
     BonsaiWS._PROTOCOL_FILE = protocol
     return application.listen(8889)
+
+
+def set_predict_mode(predict):
+    BonsaiWS._PREDICT = predict
 
 
 def close_bonsai_ws():

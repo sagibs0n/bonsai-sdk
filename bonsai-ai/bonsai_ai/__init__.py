@@ -22,4 +22,6 @@ from .config import Config
 from .simulator import Simulator
 from .inkling_types import Luminance
 from .predictor import Predictor
+from .event import EpisodeStartEvent, SimulateEvent, \
+    EpisodeFinishEvent, FinishedEvent, UnknownEvent
 from .version import __version__

@@ -14,10 +14,11 @@ from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
 from bonsai_ai.proto.generator_simulator_api_pb2 import SimulatorToServer
 
 # bonsai
-from bonsai_ai.common.state_to_proto import convert_state_to_proto
+from bonsai_ai.common.proto_to_state import dict_for_message
+from bonsai_ai.event import EpisodeStartEvent, SimulateEvent, \
+    EpisodeFinishEvent, FinishedEvent, UnknownEvent
 from bonsai_ai.exceptions import SimulateError, EpisodeStartError, \
     BonsaiServerError, EpisodeFinishError
-
 from bonsai_ai.inkling_factory import InklingMessageFactory
 from bonsai_ai.logger import Logger
 
@@ -38,7 +39,7 @@ class Simulator_WS(object):
         def __init__(self):
             self.prediction = None
             self.state = None
-            self.reward = 0
+            self.reward = 0.0
             self.terminal = False
 
     def __init__(self, brain, sim, simulator_name):
@@ -59,12 +60,13 @@ class Simulator_WS(object):
 
         # set_properties
         self._init_properties = {}
-        # TODO(oren.leiman): Pretty sure this is vestigial.
-        # self._initial_prediction_schema = None
+        self._initial_state = None
 
         # current batch of simulation steps
         self._sim_steps = []
-        self._prev_step_terminal = False
+        self._step_iter = None
+        self._prev_step_terminal = [False]
+        self._prev_step_finish = False
 
         # Caching actions for predictor
         self._predictor_action = None
@@ -78,15 +80,15 @@ class Simulator_WS(object):
             ServerToSimulator.ACKNOWLEDGE_REGISTER:
                 '_send_initial_state' if self._sim.predict else '_send_ready',
             ServerToSimulator.SET_PROPERTIES:
-                '_send_initial_state' if self._sim.predict else '_send_ready',
+                '_unsupported' if self._sim.predict else '_send_ready',
             ServerToSimulator.START:
-                '_send_initial_state',
+                '_unsupported' if self._sim.predict else '_send_initial_state',
             ServerToSimulator.PREDICTION:
                 '_send_state',
             ServerToSimulator.RESET:
-                '_send_initial_state' if self._sim.predict else '_send_ready',
+                '_unsupported' if self._sim.predict else '_send_ready',
             ServerToSimulator.STOP:
-                '_send_initial_state' if self._sim.predict else '_send_ready',
+                '_unsupported' if self._sim.predict else '_send_ready',
         }
 
         self._dispatch_recv = {
@@ -113,19 +115,6 @@ class Simulator_WS(object):
         """
         return self._inkling.new_message_from_proto(self._output_schema)
 
-    def _dict_for_message(self, message):
-        """
-        Unpack a protobuf message into a Python dictionary
-        :return: dictionary
-        """
-        result = {}
-        # If the message is bogus, return an empty dictionary rather
-        # than crashing.
-        if message is not None:
-            for field in message.DESCRIPTOR.fields:
-                result[field.name] = getattr(message, field.name)
-        return result
-
     def _send_registration(self, to_server):
         log.simulator_ws('Sending Registration')
         to_server.message_type = SimulatorToServer.REGISTER
@@ -142,17 +131,10 @@ class Simulator_WS(object):
         to_server.sim_id = self._sim_id
         state = to_server.state_data.add()
 
-        try:
-            initial_state = self._sim._on_episode_start(self._init_properties)
-        except Exception as e:
-            raise EpisodeStartError(e)
-
-        state_message = self._new_state_message()
-        convert_state_to_proto(state_message, initial_state)
-        state.state = state_message.SerializeToString()
+        state.state = self._initial_state.SerializeToString()
         state.reward = 0.0
         state.terminal = False
-        self._prev_step_terminal = state.terminal
+        self._prev_step_terminal[0] = state.terminal
         # state.action_taken = ... # no-op for init state
 
     def _send_state(self, to_server):
@@ -169,6 +151,14 @@ class Simulator_WS(object):
             else:
                 log.simulator("WARNING: Missing step in send_state")
         self._sim_steps = []
+        self._step_iter = None
+
+    def _unsupported(self, to_server):
+        descriptor = ServerToSimulator.MessageType.DESCRIPTOR
+        raise BonsaiServerError(
+            "Unexpected Message during {}: {}".format(
+                "prediction" if self._sim.predict else "training",
+                descriptor.values_by_number[self._prev_message_type].name))
 
     def _on_acknowledge_register(self, from_server):
         log.simulator_ws('Acknowledging Registration')
@@ -188,7 +178,7 @@ class Simulator_WS(object):
         dynamic_properties = data.dynamic_properties
         properties_message = self._inkling.message_for_dynamic_message(
             dynamic_properties, self._properties_schema)
-        self._init_properties = self._dict_for_message(properties_message)
+        self._init_properties = dict_for_message(properties_message)
 
     def _on_start(self, from_server):
         pass
@@ -202,6 +192,7 @@ class Simulator_WS(object):
 
             # Convert server msg to action dict and saves it for predictor
             self._cache_action_for_predictor(step.prediction)
+        self._step_iter = iter(self._sim_steps)
 
     def _on_reset(self, from_server):
         pass
@@ -209,8 +200,9 @@ class Simulator_WS(object):
     def _on_stop(self, from_server):
         # fire the finished message if the previous step wasn't terminal
         # as it will already have been called
-        if not self._prev_step_terminal:
-            self._sim._on_episode_finish()
+        # if not self._prev_step_terminal:
+        #     self._sim._on_episode_finish()
+        pass
 
     def _on_finished(self, from_server):
         pass
@@ -246,7 +238,7 @@ class Simulator_WS(object):
             for the predictor class """
         action_message = self._inkling.message_for_dynamic_message(
             prediction, self._prediction_schema)
-        self._predictor_action = self._dict_for_message(action_message)
+        self._predictor_action = dict_for_message(action_message)
 
     @gen.coroutine
     def _connect(self):
@@ -272,60 +264,6 @@ class Simulator_WS(object):
             raise gen.Return(repr(e))
         else:
             raise gen.Return(None)
-
-    def _advance(self, step):
-        """ Helper function to advance the simulator and process the resulting
-        state for transmission.
-        """
-        log.simulator_ws('Advancing')
-        action_message = self._inkling.message_for_dynamic_message(
-            step.prediction, self._prediction_schema)
-        log.simulator("action: {}".format(MessageToJson(action_message)))
-        action = self._dict_for_message(action_message)
-
-        # for this step...
-        state = None
-        reward = 0.0
-        terminal = False
-
-        # previous state was terminal, synthesize a new episode start
-        if self._prev_step_terminal:
-            try:
-                state = self._sim._on_episode_start(self._init_properties)
-                self._prev_step_terminal = False
-
-                log.simulator_ws('\tES')
-            except Exception as e:
-                raise EpisodeStartError(e)
-
-        # single step
-        else:
-            try:
-                state, reward, terminal = self._sim._on_simulate(action)
-                reward = float(reward)
-                terminal = bool(terminal)  # convert from 1:0 to True:False
-
-                log.simulator_ws('\tT' if terminal else '\tS')
-            except Exception as e:
-                raise SimulateError(e)
-
-        # package up response
-        state_message = self._new_state_message()
-        convert_state_to_proto(state_message, state)
-        log.simulator("state: {}".format(MessageToJson(state_message)))
-        step.state = state_message
-        step.reward = reward
-        step.terminal = terminal
-
-        # set a flag to know if we should synthesize a start on the next step
-        if terminal:
-            try:
-                self._sim._on_episode_finish()
-                self._prev_step_terminal = True
-
-                log.simulator_ws('\tF')
-            except Exception as e:
-                raise EpisodeFinishError(e)
 
     def _configure_writer(self):
         self._sim.writer.enable_keys(
@@ -355,29 +293,7 @@ class Simulator_WS(object):
         return [f.name for f in msg.DESCRIPTOR.fields]
 
     @gen.coroutine
-    def close_connection(self):
-        """ Close websocket connection """
-        yield self._ws.close()
-
-    @gen.coroutine
-    def run(self):
-        """ Run loop called from Simulator. Encapsulates one round trip
-        to the backend, which might include a simulation loop.
-        """
-        # Grab a web socket connection if needed
-        if self._ws is None:
-            message = yield self._connect()
-            # If the connection failed, report
-            if message is not None:
-                raise BonsaiServerError(
-                    "Error while connecting to websocket: {}".format(message))
-
-        # advance through N predictions
-        if self._prev_message_type == ServerToSimulator.PREDICTION:
-            for step in self._sim_steps:
-                self._advance(step)
-
-        # send message to server
+    def _ws_send_recv(self):
         to_server = SimulatorToServer()
         self._on_send(to_server)
         log.pb("to_server: {}".format(MessageToJson(to_server)))
@@ -403,9 +319,125 @@ class Simulator_WS(object):
         log.pb("from_server: {}".format(MessageToJson(from_server)))
         self._on_recv(from_server)
 
-        if self._prev_message_type == ServerToSimulator.FINISHED:
+    @gen.coroutine
+    def close_connection(self):
+        """ Close websocket connection """
+        if self._ws is not None:
             yield self._ws.close()
-            raise gen.Return(False)
 
-        # You've come this far, celebrate!
+    def _process_sim_step(self):
+        try:
+            event = None
+            step = next(self._step_iter)
+            step.state = self._new_state_message()
+            if self._prev_step_finish:
+                event = EpisodeStartEvent(self._init_properties, step.state)
+                self._prev_step_finish = False
+            else:
+                action_message = self._inkling.message_for_dynamic_message(
+                    step.prediction, self._prediction_schema)
+                action = dict_for_message(action_message)
+                event = SimulateEvent(action, step, self._prev_step_terminal)
+            return event
+        except StopIteration:
+            return None
+
+    @gen.coroutine
+    def get_next_event(self):
+        """ Update the internal event machine and return the next
+        event for processing"""
+        # Grab a web socket connection if needed
+        if self._ws is None:
+            message = yield self._connect()
+            # If the connection failed, report
+            if message is not None:
+                raise BonsaiServerError(
+                    "Error while connecting to websocket: {}".format(message))
+
+        if self._prev_message_type == ServerToSimulator.PREDICTION:
+            if self._prev_step_terminal[0]:
+                self._prev_step_terminal[0] = False
+                self._prev_step_finish = True
+                event = EpisodeFinishEvent()
+            else:
+                event = self._process_sim_step()
+            if event is not None:
+                raise gen.Return(event)
+
+        yield self._ws_send_recv()
+
+        pmt = self._prev_message_type
+        if pmt == ServerToSimulator.ACKNOWLEDGE_REGISTER:
+            if self._sim.predict:
+                self._initial_state = self._new_state_message()
+                event = EpisodeStartEvent(
+                    self._init_properties, self._initial_state)
+                self._prev_step_finish = False
+            else:
+                event = UnknownEvent()
+        if pmt == ServerToSimulator.SET_PROPERTIES or \
+           pmt == ServerToSimulator.RESET:
+            event = UnknownEvent()
+        elif pmt == ServerToSimulator.STOP:
+            if self._prev_step_finish:
+                event = UnknownEvent()
+                self._prev_step_finish = False
+            else:
+                event = EpisodeFinishEvent()
+        elif pmt == ServerToSimulator.START:
+            self._initial_state = self._new_state_message()
+            event = EpisodeStartEvent(
+                self._init_properties, self._initial_state)
+            self._prev_step_finish = False
+        elif pmt == ServerToSimulator.PREDICTION:
+            event = self._process_sim_step()
+        elif pmt == ServerToSimulator.FINISHED:
+            event = FinishedEvent()
+        else:
+            event = UnknownEvent()
+
+        raise gen.Return(event)
+
+    @gen.coroutine
+    def run(self):
+        """ Run loop called from Simulator. Encapsulates one round trip
+        to the backend, which might include a simulation loop.
+        """
+
+        event = yield self.get_next_event()
+
+        if isinstance(event, EpisodeStartEvent):
+            log.event("Episode Start")
+            try:
+                state = self._sim._on_episode_start(event.initial_properties)
+            except Exception as e:
+                raise EpisodeStartError(e)
+
+            event.initial_state = state
+            log.simulator("initial state: {}".format(event.initial_state))
+            log.simulator_ws('\tES')
+        elif isinstance(event, SimulateEvent):
+            log.event("Simulate")
+            try:
+                event.state, event.reward, event.terminal = \
+                    self._sim._on_simulate(event.action)
+            except Exception as e:
+                raise SimulateError(e)
+
+            log.simulator_ws('\tT' if event.terminal else '\tS')
+            log.simulator("state: {}".format(event.state))
+        elif isinstance(event, EpisodeFinishEvent):
+            log.event("Episode Finish")
+            try:
+                self._sim._on_episode_finish()
+            except Exception as e:
+                raise EpisodeFinishError(e)
+            log.simulator_ws('\tF')
+        elif isinstance(event, FinishedEvent):
+            log.event("Finished")
+            self.close_connection()
+            raise gen.Return(False)
+        elif isinstance(event, UnknownEvent):
+            log.event("No Operation")
+
         raise gen.Return(True)
