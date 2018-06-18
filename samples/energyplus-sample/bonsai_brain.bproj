@@ -3,8 +3,8 @@
         "*.ink",
         "*.py",
         "EMSWindowShadeControl.idf",
-        "variables.cfg",
-        "requirements.txt"
+        "requirements.txt",
+        "variables.cfg"
     ],
     "training": {
         "command": "python3 energyplus_simulator.py",

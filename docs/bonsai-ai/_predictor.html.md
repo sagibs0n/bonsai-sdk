@@ -29,13 +29,8 @@ action = predictor.get_action(state)
 predictor.close()
 ```
 
-```cpp
-# Not yet implemented
-```
-
 This class is used to interface with the server to obtain predictions for a specific BRAIN and
-is a subclass of Simulator. This class is currently unavailable in `libbonsai` so only Python
-implementations are shown.
+is a subclass of Simulator.
 
 The `Predictor` class is closely related to the Inkling file that is associated with the BRAIN.
 The name used to construct `Predictor` must match the name of the simulator in the Inkling file.

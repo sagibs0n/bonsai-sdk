@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.9
+- Make testing logs quieter
+- update http to https for all setup.py
+
 ## 2.0.8
 - Event pump API (feature parity with libbonsai)
 

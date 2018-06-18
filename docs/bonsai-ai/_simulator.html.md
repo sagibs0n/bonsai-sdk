@@ -15,8 +15,8 @@ demonstrates how these are called during training. Optionally, one may also over
 
 | Property          | Description |
 | ---               | ---         |
-| `brain`           |  The simulators Brain object. |
-| `name`            |  The simulators name. |
+| `brain`           |  The simulator's Brain object. |
+| `name`            |  The simulator's name. |
 | `objective_name`  |  The name of the current objective for an episode. |
 | `episode_reward`  |  Cumulative reward for this episode so far. |
 | `episode_count`   |  Number of completed episodes since sim launch. |
@@ -37,41 +37,6 @@ end
 ```
 
 > Example code:
-
-```cpp
-class MySimulator : public Simulator {
- public:
-    explicit BasicSimulator(std::shared_ptr<Brain> brain, string name)
-        : Simulator(move(brain), move(name)) {
-            // your simulator init code goes here.
-        }
-
-    void episode_start(const bonsai::InklingMessage& params,
-        bonsai::InklingMessage& initial_state) override {
-            // your simulation episode reset/init code.
-        }
-
-    void simulate(const bonsai::InklingMessage& action,
-        bonsai::InklingMessage& state,
-        float& reward,
-        bool& terminal) override {
-            // your simulation stepping code.
-        }
-
-    void episode_finish() override {
-            // your post-episode code.
-        }
-};
-
-...
-
-auto config = make_shared<bonsai::Config>(argc, argv);
-auto brain = make_shared<bonsai::Brain>(config);
-MySimulator sim(brain, "my_simulator");
-
-...
-
-```
 
 ```python
 class MySimulator(bonsai_ai.Simulator):
@@ -108,10 +73,7 @@ of Simulator and implement the `episode_start` and `simulate` callbacks.
 | `brain`  |  A Brain object for the BRAIN you wish to train against. |
 | `name`   |  The name of simulator as specified in the Inkling for the BRAIN. |
 
-## Brain brain()
-```cpp
-std::cout << sim.brain() << endl;
-```
+## Brain brain
 
 ```python
 print(sim.brain)
@@ -119,27 +81,14 @@ print(sim.brain)
 
 Returns the BRAIN being used for this simulation.
 
-## string name()
-```cpp
-std::cout << "Starting " << sim.name() << endl;
-```
+## name
 
 ```python
 print("Starting ", sim.name)
 ```
 Returns the simulator name that was passed in when constructed.
 
-## bool predict()
-```cpp
-void MySimulator::simulate(const bonsai::InklingMessage& action,
-                    bonsai::InklingMessage& state, float& reward, bool& terminal) {
-    if (predict() == false) {
-        // calculate reward...
-    }
-
-    ...
-}
-```
+## predict
 
 ```python
 def simulate(self, action):
@@ -148,25 +97,20 @@ def simulate(self, action):
 
     ...
 ```
+
 Returns a value indicating whether the simulation is set up to run in predict mode or training mode.
 
-## string objective_name()
-```cpp
-void MySimulator::episode_start(const bonsai::InklingMessage& params,
-                                bonsai::InklingMessage& initial_state) {
-    cout << objective_name() << endl;
-    ...
-}
-```
+## objective_name
 
 ```python
 def episode_start(self, params):
     print(self.objective_name)
     ...
 ```
+
 Property accessor that returns the name of the current objective from Inkling.
 The objective may be updated before `episode_start` is called. When running
-for prediction and during start up, objective will return an empty std::string.
+for prediction and during start up, objective will return an empty string.
 
 ## episode_start(parameters, initial_state)
 
@@ -184,20 +128,6 @@ end
 ```
 
 > Example code:
-
-```cpp
-void MySimulator::episode_start(const bonsai::InklingMessage& params,
-                                bonsai::InklingMessage& initial_state) {
-    // training params are only passed in during training
-    if (predict() == false) {
-        cout << objective_name() << endl;
-        angle = params.get_float32("start_angle");
-    }
-
-    initial_state.set_float32("velocity", velocity);
-    initial_state.set_float32("angle",    angle);
-}
-```
 
 ```python
 def episode_start(self, params):
@@ -238,22 +168,6 @@ end
 
 > Example code:
 
-```cpp
-void MySimulator::simulate(const bonsai::InklingMessage& action,
-                           bonsai::InklingMessage& state, float& reward, bool& terminal) {
-    velocity = velocity - action.get_int8("delta");
-    terminal = (velocity <= 0.0);
-
-    // reward is only needed during training.
-    if (self.predict() == false) {
-        reward = reward_for_objective(objective_name());
-    }
-
-    state.set_float32("velocity", velocity);
-    state.set_float32("angle",    angle);
-}
-```
-
 ```python
 def simulate(self, action):
     velocity = velocity - action.delta;
@@ -290,19 +204,7 @@ Returning `true` for the `terminal` flag signals the start of a new episode.
 
 The default implementation will throw an exception.
 
-## bool run()
-
-```cpp
-MySimulator sim(brain);
-
-if (sim.predict())
-    std::cout << "Predicting against " << brain.name() << " version " << brain.version() << endl;
-else
-    std::cout << "Training " << brain.name() << endl;
-
-while( sim.run() ) {
-}
-```
+## run()
 
 ```python
 sim = MySimulator(brain)
@@ -324,12 +226,6 @@ To run for prediction, `brain()->config()->predict()` must return `true`.
 
 ## episode_finish()
 
-```cpp
-void MySimulator::episode_finish() {
-    cout << 'Episode: ' << episode_count() << ' reward:' << episode_reward() << endl;
-}
-```
-
 ```python
 def episode_finish(self):
     print('Episode:', self.episode_count,
@@ -339,15 +235,7 @@ def episode_finish(self):
 This callback is called at the end of each episode. You can use it to log
 out statistical information, or perform post episode cleanup.
 
-## record_file()
-
-```cpp
-my_sim.record_file() == "/path/to/foobar.json";
-my_sim.set_record_file("/path/to/barfoo.json");
-
-my_sim.record_file() == "/path/to/foobar.csv";
-my_sim.set_record_file("/path/to/barfoo.csv");
-```
+## record_file
 
 ```python
 my_sim.record_file == "/path/to/foobar.json"
@@ -363,25 +251,6 @@ When a new record file is set, the previous file will be closed immediately. Sub
 
 ## enable_keys(keys, prefix=None)
 
-This function adds the given keys to the log schema for this writer.
-If one is provided, the prefix will be prepended to those keys and
-they will appear as such in the resulting logs.
-If recording is not enabled, this method has no effect.
-    
-You should enable any keys you expect to see in the logs. If you
-attempt to insert objects containing keys which have not been
-enabled, those keys will be silently ignored.
-
-```cpp
-int main(int argc, char** argv) {
-    auto config = std::make_shared<bonsai::Config>(argc, argv);
-    auto brain = std::make_shared<Brain>(config);
-    MySim sim(brain);
-    sim.enable_keys({"foo", "bar"});
-    sim.enable_keys({"baz"}, "qux");
-}
-```
-
 ```python
 if __name__ == "__main__":
     config = Config(sys.argv)
@@ -391,59 +260,21 @@ if __name__ == "__main__":
     sim.enable_keys(["baz"], "qux")
 ```
 
+This function adds the given keys to the log schema for this writer.
+If one is provided, the prefix will be prepended to those keys and
+they will appear as such in the resulting logs.
+If recording is not enabled, this method has no effect.
+    
+You should enable any keys you expect to see in the logs. If you
+attempt to insert objects containing keys which have not been
+enabled, those keys will be silently ignored.
+
 | Argument   | Description |
 | ---        | ---         |
 | `keys`     | A list/vector of strings to include as keys in log entries for this simulator. |
-| `prefix`   | A `std::string` used as a subdomain for the given `keys`. Entries will appear as `<prefix>.<key>` for each `key` in `keys`. Defaults to empty string. |
-
-## record_append(key, value, prefix="")
-
-**Note:** Used in C++ only. For python, use `record_append(obj, prefix)`.
-
-Adds the given key (prepended by `prefix`, if provided) and value to the current log entry. If the specified
-key is not enabled or recording is not enabled, this method has no effect.
-
-The following `value` types are supported:
-- `int64_t`
-- `size_t`
-- `double`
-- `std::string`
-- `bool`
-
-**Note:** The template specializations in the following snippet are included for completeness. If the `value` parameter is of one of the supported types, the correct specialization will be deduced by the compiler.
-
-```cpp
-int main(int argc, char** argv) {
-    auto config = std::make_shared<bonsai::Config>(argc, argv);
-    config.set_recording_enabled(true);
-    config.set_record_filie("foobar.json");
-    auto brain = std::make_shared<Brain>(config);
-    MySim sim(brain);
-    sim.enable_keys({"foo", "bar", "oof", "rab"});
-    sim.enable_keys({"baz"}, "qux");
-
-    while (sim.run()) {
-        sim.record_append<int64_t>("foo", -23);
-        sim.record_append<size_t>("bar", 123);
-        sim.record_append<double>("oof", .023);
-        sim.record_append<std::string>("rab", "foobar");
-        sim.record_append<bool>("baz", true, "qux");
-        sim.record_append<int64_t>("nope", 23);
-    }
-}
-```
-
-| Argument   | Description |
-| ---        | ---         |
-| `key`      | A `std::string` used as an index into the current log entry. |
-| `value`    | The value to add under `<prefix>.<key>`. May be any of `int64_t`, `size_t`, `double`, `std::string`, or `bool` |
-| `prefix`   | String prefix for `key`. Keys should be enabled and added with the same prefix. |
+| `prefix`   | A `string` used as a subdomain for the given `keys`. Entries will appear as `<prefix>.<key>` for each `key` in `keys`. Defaults to empty string. |
 
 ## record_append(obj, prefix=None)
-
-**Note:** Used in Python only. For C++, use `record_append(key, value, prefix)`.
-
-Adds the keys (prepended by `prefix`, if provied) from the given dictionary to the current log entry. If recording is not enabled, this method has no effect. If a particular subset of the keys in `obj` are not enabled, they will be ignored silently.
 
 ```python
 if __name__ == "__main__":
@@ -462,18 +293,15 @@ if __name__ == "__main__":
         }, "qux")
 ```
 
+
+Adds the keys (prepended by `prefix`, if provied) from the given dictionary to the current log entry. If recording is not enabled, this method has no effect. If a particular subset of the keys in `obj` are not enabled, they will be ignored silently.
+
 | Argument   | Description |
 | ---        | ---         |
 | `obj`      | A dictionary containing data to be added to the current log entry. |
 | `prefix`   | String prefix for the keys in `obj`. |
 
 ## get_next_event()
-Advance the SDK's internal state machine and return an event for processing.
-
-This is the primary entrypoint for the "Event Pump" interface. With this,
-custom run loop implementations are possible in user code. Rather than calling
-`Simulator.run` in a loop, communication between simulation code and Bonsai backend
-can be accomplished step by step.
 
 ```python
 if __name__ == "__main__":
@@ -500,18 +328,15 @@ if __name__ == "__main__":
             pass
 ```
 
+Advance the SDK's internal state machine and return an event for processing.
+
+This is the primary entrypoint for the "Event Pump" interface. With this,
+custom run loop implementations are possible in user code. Rather than calling
+`Simulator.run` in a loop, communication between simulation code and Bonsai backend
+can be accomplished step by step.
+
 ## close()
 
 Close the internal websocket.
 
-## operator<<(ostream, simulator)
-
-Prints out a representation of Simulator that is useful for debugging.
-
-**Note:** Used in C++ only. For python, use `print(simulator)`
-
-| Argument  | Description |
-| ---       | ---         |
-| `ostream` | A std c++ stream operator. |
-| `simulator`  | A bonsai::Simulator to print out. |
 

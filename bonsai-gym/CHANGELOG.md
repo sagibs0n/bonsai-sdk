@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.7
+- update http to https for all setup.py
+
 ## 2.0.6
 - Adds episode_finish to LuminanceGymSimulator
 

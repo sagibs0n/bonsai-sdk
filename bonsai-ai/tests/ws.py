@@ -144,5 +144,8 @@ def close_bonsai_ws():
 if __name__ == "__main__":
     try:
         open_bonsai_ws(sys.argv[1])
+        if sys.argv[2] == "P":
+            set_predict_mode(True)
+        ioloop.IOLoop.current().start()
     except KeyboardInterrupt:
         close_bonsai_ws()

@@ -15,7 +15,7 @@ setup(
     description="A python library for integrating Bonsai BRAIN \
     with Open AI Gym environments.",
     long_description=open('README.rst').read(),
-    url="http://bons.ai",
+    url="https://bons.ai",
     author="Bonsai, Inc.",
     author_email='opensource@bons.ai',
     license="BSD",

@@ -9,6 +9,7 @@ import os
 from os.path import exists, join
 import platform
 import sys
+import shlex
 
 # for graphing
 import plotly.offline as py
@@ -86,7 +87,8 @@ class Model(object):
         self.currentSimTime = 0.
         self.exitFlag = 0
         self.fromClient = None
-        self.process = subprocess.Popen(self.shellCmd, shell=True)
+        # https://stackoverflow.com/questions/18962785/oserror-errno-2-no-such-file-or-directory-while-using-python-subprocess-in-dj
+        self.process = subprocess.Popen(shlex.split(self.shellCmd))
 
     def stop(self):
         self.process.terminate()

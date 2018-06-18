@@ -13,13 +13,6 @@ such that ">>" indicates a decreasing order of precedence. Note that failure to 
 BRAIN name in at least one of these places will result in a friendly error.
 
 ## Brain(config, name)
-Creates a local object for interacting with an existing BRAIN on the server.
-
-```cpp
-auto config = make_shared<bonsai::Config>(argc, argv);
-auto brain = make_shared<bonsai::Brain>(config);
-std::cout << brain << std::endl;
-```
 
 ```python
 config = bonsai_ai.Config(sys.argv)
@@ -27,26 +20,23 @@ brain = bonsai_ai.Brain(config)
 print(brain)
 ```
 
+Creates a local object for interacting with an existing BRAIN on the server.
+
 | Argument | Description |
 | ---      | ---         |
-| `config` | Object returned by previously created `Bonsai::Config` (C++) or `bonsai_ai.Config()` (Python). |
+| `config` | Object returned by previously created `bonsai_ai.Config`. |
 | `name`   | BRAIN name as specified on the server. If name is empty, the BRAIN name in `config` is used instead. |
 
 ## update()
-```cpp
-brain.update();
-```
 
 ```python
 brain.update()
 ```
+
 Refreshes description, status, and other information with the current state of the BRAIN on the server.
 Called by default when constructing a new Brain object.
 
-## string name()
-```cpp
-std::cout << brain.name() << endl;
-```
+## name
 
 ```python
 print(brain.name)
@@ -54,10 +44,7 @@ print(brain.name)
 
 Returns the name of the BRAIN as specified when it was created.
 
-## string description()
-```cpp
-std::cout << brain.description() << endl;
-```
+## description
 
 ```python
 print(brain.description)
@@ -65,10 +52,7 @@ print(brain.description)
 
 Returns the user-provided description for the BRAIN.
 
-## int version()
-```cpp
-std::cout << brain.version() << endl;
-```
+## version
 
 ```python
 print(brain.version)
@@ -76,10 +60,7 @@ print(brain.version)
 
 Returns the current version number of the BRAIN.
 
-## int latest_version()
-```cpp
-std::cout << brain.latest_version() << endl;
-```
+## latest_version
 
 ```python
 print(brain.latest_version)
@@ -87,24 +68,11 @@ print(brain.latest_version)
 
 Returns latest version number of the BRAIN.
 
-## Config config()
-```cpp
-std::cout << brain.config() << endl;
-```
+## Config config
 
 ```python
 print(brain.config)
 ```
 
 Returns the configuration used to locate this BRAIN.
-
-## operator<<(ostream, brain)
-Prints out a representation of Brain that is useful for debugging.
-
-**Note:** Used in C++ only. For python use `print(brain)`
-
-| Argument  | Description |
-| ---       | ---         |
-| `ostream` | A std c++ stream operator. |
-| `brain`   | A bonsai::Brain object to print out`. |
 
