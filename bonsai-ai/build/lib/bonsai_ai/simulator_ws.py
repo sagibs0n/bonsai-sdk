@@ -375,8 +375,8 @@ class Simulator_WS(object):
                 self._prev_step_finish = False
             else:
                 event = UnknownEvent()
-        if pmt == ServerToSimulator.SET_PROPERTIES or \
-           pmt == ServerToSimulator.RESET:
+        elif (pmt == ServerToSimulator.SET_PROPERTIES or
+              pmt == ServerToSimulator.RESET):
             event = UnknownEvent()
         elif pmt == ServerToSimulator.STOP:
             if self._prev_step_finish:

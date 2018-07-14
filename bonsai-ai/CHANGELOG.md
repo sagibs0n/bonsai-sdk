@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.10
+- Fix sequencing bug in predict mode
+
 ## 2.0.9
 - Make testing logs quieter
 - update http to https for all setup.py

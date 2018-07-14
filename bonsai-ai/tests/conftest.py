@@ -87,6 +87,7 @@ class SequencingSim(Simulator):
         super(SequencingSim, self).__init__(brain, name)
         self.last_step_type = None
         self._n = 0
+        self._ep_start_called = False
 
     def _generate_terminal(self):
         self._n += 1
@@ -98,6 +99,7 @@ class SequencingSim(Simulator):
             yield 0
 
     def episode_start(self, parameters):
+        self._ep_start_called = True
         print('\n\nES{}'.format(self.episode_count), end=' ')
         assert(self.last_step_type is None or
                self.last_step_type == 'F')
@@ -112,6 +114,8 @@ class SequencingSim(Simulator):
         return initial
 
     def simulate(self, action):
+        # fail if episode_start has *never* been called
+        assert(self._ep_start_called)
         state = {
             "position": 1.0,
             "velocity": 0.0,
