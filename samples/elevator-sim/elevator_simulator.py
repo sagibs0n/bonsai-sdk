@@ -63,11 +63,12 @@ class ElevatorSimulator(Simulator):
 
         state = self._get_state()
         done = self._get_done()
-        reward = None
 
         # only calculate reward for training mode
         if not self.predict:
             reward = self._elevator_objective()
+        else:
+            reward = 0
 
         return state, reward, done
 

@@ -3,8 +3,10 @@ schema GameState
     Float32 x_velocity
 end
 
+constant Float32 throttleMin = -1.0
+constant Float32 throttleMax = 1.0
 schema Action
-    Float32{-1.0:1.0} command
+    Float32{throttleMin:throttleMax} command
 end
 
 schema MountainCarConfig

@@ -1,7 +1,14 @@
 {
     "executable": "lunarlander_continuous_simulator.py",
     "prediction": {
-        "episodes": 0,
-        "mean": 0 
+        "episodes": 3,
+        "mean": -200
+    },
+    "training": {
+        "concepts": [
+            "land"
+        ],
+        "episodes": 100,
+        "iterations": 100
     }
 }

@@ -3,8 +3,11 @@ schema GameState
     Float32 x_velocity
 end
 
+constant Int8 left = 0
+constant Int8 stop = 1
+constant Int8 right = 2
 schema Action
-    Int8{0, 1, 2} command
+    Int8{left, stop, right} command
 end
 
 schema MountainCarConfig

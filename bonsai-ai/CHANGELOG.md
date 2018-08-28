@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.11
+- Flush record buffer on every call to `run`
+- Improved config file error reporting
+- Generate `FinishedEvent` in response to server errors
+- Log Sim ID to the console immediately after registration
+- Fix Config bug involving `DEFAULT` profile
+- Added `use_color` flag to Config
+- Fix bug where default url was getting assigned before config is parsed
+- Fix Config tests
+- Added `Brain.exists` and `Brain.state` for better status checking
+
 ## 2.0.10
 - Fix sequencing bug in predict mode
 

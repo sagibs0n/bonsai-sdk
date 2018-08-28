@@ -3,8 +3,10 @@
 
 # A schema defining the dictionary returned from the Python simulation's
 # advance method to the BRAIN
+constant Int32 minIrradiation = 0
+constant Int32 maxIrradiation = 10
 schema SimState
-    Int32{0:10} SolarIrradiation
+    Int32{minIrradiation:maxIrradiation} SolarIrradiation
 end
 
 # This schema defines the 'actions', a dictionary of control signals this AI

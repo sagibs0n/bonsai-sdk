@@ -13,6 +13,7 @@ def test_included_domain(capsys, logging_config):
 
 def test_excluded_domain(capsys, logging_config):
     log = Logger()
+    log._enable_all = False
     log.spam('eggs')
     out, err = capsys.readouterr()
     assert out == ''

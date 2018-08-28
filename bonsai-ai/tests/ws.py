@@ -10,11 +10,31 @@ from bonsai_ai.proto.generator_simulator_api_pb2 import SimulatorToServer
 
 
 class BrainRequestHandler(web.RequestHandler):
-    response = {'versions': [{'version': 2}],
-                'state': 'Stopped'}
+    status_response = {'versions': [{'version': 3}, {'version': 2}],
+                       'state': 'Not Started'}
+
+    user_response = {'brains': [{'name': "cartpole"}]}
 
     def get(self):
-        self.write(self.response)
+        uri = self.request.uri
+        endpoint = uri.split('/')[-1]
+        if (endpoint == 'alice'):
+            self.write(self.user_response)
+        else:
+            self.write(self.status_response)
+
+    def put(self):
+        uri = self.request.uri
+        endpoint = uri.split('/')[-1]
+
+        if endpoint == 'train':
+            self.status_response['state'] = "In Progress"
+        elif endpoint == 'stop':
+            self.status_response['state'] = "Stopped"
+        else:
+            print("WS.PY: unsupported endpoint: {}".format(uri))
+
+        self.write(self.status_response)
 
 
 class BonsaiWS(websocket.WebSocketHandler):
@@ -121,7 +141,10 @@ application = web.Application([
     (r'/v1/alice/cartpole/sims/ws', BonsaiWS),
     (r'/v1/alice/cartpole/4/predictions/ws', BonsaiWS),
     (r'/v1/alice/cartpole/status', BrainRequestHandler),
-    (r'/v1/alice/cartpole', BrainRequestHandler)
+    (r'/v1/alice/cartpole/train', BrainRequestHandler),
+    (r'/v1/alice/cartpole/stop', BrainRequestHandler),
+    (r'/v1/alice/cartpole', BrainRequestHandler),
+    (r'/v1/alice', BrainRequestHandler)
 ])
 
 

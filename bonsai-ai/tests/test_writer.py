@@ -11,6 +11,7 @@ from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
 def test_json_writing(record_json_sim):
     while record_json_sim._impl._prev_message_type != \
           ServerToSimulator.RESET:
+        record_json_sim.record_append({'foo': 23}, 'bar')
         record_json_sim.run()
 
     assert os.path.exists(record_json_sim.brain.config.record_file)
@@ -22,8 +23,8 @@ def test_json_writing(record_json_sim):
     assert len(json_content) == len(content)
 
     for l in json_content:
-        # print("then the content: {}".format(l))
-        assert l['sim_id'] == 270022238
+        if l['sim_id'] is not None:
+            assert l['sim_id'] == 270022238
         assert l['bar.foo'] == 23
 
     os.remove(record_json_sim.brain.config.record_file)
@@ -32,6 +33,7 @@ def test_json_writing(record_json_sim):
 def test_csv_writing(record_csv_sim):
     while record_csv_sim._impl._prev_message_type != \
           ServerToSimulator.RESET:
+        record_csv_sim.record_append({'foo': 23}, 'bar')
         record_csv_sim.run()
 
     assert os.path.exists(record_csv_sim.brain.config.record_file)
@@ -50,10 +52,14 @@ def test_csv_writing(record_csv_sim):
 
         id_idx = header.index('sim_id')
         custom_idx = header.index('bar.foo')
+        # for row in reader:
+        #     print(row)
+
+        # assert False
 
         for row in reader:
-            assert '270022238' in row
-            assert id_idx == row.index('270022238')
+            if '270022238' in row:
+                assert id_idx == row.index('270022238')
             assert '23' in row
             assert custom_idx == row.index('23')
 
@@ -66,6 +72,7 @@ def test_file_change(record_csv_sim, tmpdir):
         if record_csv_sim._impl._prev_message_type == \
            ServerToSimulator.PREDICTION:
             record_csv_sim.record_file = "./sub/bazqux.csv"
+        record_csv_sim.record_append({'foo': 23}, 'bar')
         record_csv_sim.run()
 
     assert os.path.exists(record_csv_sim.brain.config.record_file)
@@ -86,8 +93,8 @@ def test_file_change(record_csv_sim, tmpdir):
         custom_idx = header.index('bar.foo')
 
         for row in reader:
-            assert '270022238' in row
-            assert id_idx == row.index('270022238')
+            if '270022238' in row:
+                assert id_idx == row.index('270022238')
             assert '23' in row
             assert custom_idx == row.index('23')
 
@@ -110,9 +117,8 @@ def test_file_change(record_csv_sim, tmpdir):
         custom_idx = header.index('bar.foo')
 
         for row in reader:
-            print(row)
-            assert '270022238' in row
-            assert id_idx == row.index('270022238')
+            if '270022238' in row:
+                assert id_idx == row.index('270022238')
             assert '23' in row
             assert custom_idx == row.index('23')
 

@@ -5,7 +5,8 @@ import os
 import pytest
 import requests
 import time
-from random import randint
+from tempfile import mkdtemp
+from shutil import rmtree
 from tornado.ioloop import IOLoop
 
 try:
@@ -21,7 +22,6 @@ from ws import open_bonsai_ws, close_bonsai_ws, set_predict_mode
 class CartSim(Simulator):
     def episode_start(self, parameters):
         print('episode_start:', parameters)
-        self.record_append({'foo': 23}, 'bar')
         initial = {
             "position": 1.0,
             "velocity": 0.0,
@@ -32,7 +32,6 @@ class CartSim(Simulator):
 
     def simulate(self, action):
         print('simulate:', action)
-        self.record_append({'foo': 23}, 'bar')
         terminal = True
         state = {
             "position": 1.0,
@@ -360,6 +359,29 @@ def bonsai_ws(request):
         server.stop()
     request.addfinalizer(fin)
     return server
+
+
+@pytest.yield_fixture(scope='module')
+def temp_dot_bonsai():
+    """
+    This fixture creates a temporary directory and writes
+    a Config profiles to the disk. The tests that require
+    checking parameters in these profiles should use this fixture
+    """
+    temp_dir = mkdtemp()
+    home_dir = os.environ["HOME"] if "HOME" in os.environ else ""
+    os.environ["HOME"] = temp_dir
+
+    config = Config()
+    config._update(profile='dev',
+                   username='admin',
+                   accesskey='00000000-1111-2222-3333-000000000001',
+                   url='http://localhost')
+
+    yield
+
+    os.environ["HOME"] = home_dir
+    rmtree(temp_dir)
 
 
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):

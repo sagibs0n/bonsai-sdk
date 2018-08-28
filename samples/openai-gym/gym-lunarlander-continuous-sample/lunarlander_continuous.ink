@@ -9,9 +9,11 @@ schema GameState
     Float32 right_leg
 end
 
+constant Float32 throttleMin = -1.0
+constant Float32 throttleMax = 1.0
 schema LanderAction
-    Float32{-1.0:1.0} engine1,
-    Float32{-1.0:1.0} engine2
+    Float32{throttleMin:throttleMax} engine1,
+    Float32{throttleMin:throttleMax} engine2
 end
 
 schema LunarLanderConfig

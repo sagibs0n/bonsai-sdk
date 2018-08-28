@@ -3,6 +3,7 @@ It can be used in this case to find the center between two numbers.
 """
 import bonsai_ai
 from random import randint
+from time import clock
 
 
 class BasicSimulator(bonsai_ai.Simulator):
@@ -41,6 +42,7 @@ class BasicSimulator(bonsai_ai.Simulator):
         if self.value == self.goal:
             self.goal_count += 1
 
+        self.record_append({"goal_count": self.goal_count}, "ftc")
         # is this episode finished?
         terminal = (self.value < self.min or
                     self.value > self.max or
@@ -59,9 +61,24 @@ class BasicSimulator(bonsai_ai.Simulator):
 
 if __name__ == "__main__":
     config = bonsai_ai.Config()
+    # Analytics recording can be enabled in code or at the command line.
+    # The commented lines would have the same effect as invoking this
+    # script with "--record=find_the_center.json".
+    # Alternatively, invoking with "--record=find_the_center.csv" enables
+    # recording to CSV.
+    # config->set_record_enabled(true);
+    # config->set_record_file("find_the_center.json");
+
     brain = bonsai_ai.Brain(config)
+
     sim = BasicSimulator(brain, "find_the_center_sim")
+    sim.enable_keys(["delta_t", "goal_count"], "ftc")
 
     print('starting...')
+    last = clock() * 10000000
     while sim.run():
+        now = clock() * 1000000
+        sim.record_append(
+            {"delta_t": now - last}, "ftc")
+        last = clock() * 1000000
         continue

@@ -135,7 +135,7 @@ class Simulator_WS(object):
         state.reward = 0.0
         state.terminal = False
         self._prev_step_terminal[0] = state.terminal
-        # state.action_taken = ... # no-op for init state
+        # state.action_taken = #... # no-op for init state
 
     def _send_state(self, to_server):
         log.simulator_ws('Sending State')
@@ -147,6 +147,8 @@ class Simulator_WS(object):
                 state.state = step.state.SerializeToString()
                 state.reward = step.reward
                 state.terminal = step.terminal
+                log.action(self._inkling.message_for_dynamic_message(
+                    step.prediction, self._prediction_schema))
                 state.action_taken = step.prediction
             else:
                 log.simulator("WARNING: Missing step in send_state")
@@ -169,6 +171,9 @@ class Simulator_WS(object):
         if self._sim.writer is not None:
             self._configure_writer()
         self._sim_id = data.sim_id
+        log.info("Starting {} ID: <{}>".format(
+            "Prediction" if self._sim.predict else "Training",
+            self._sim_id))
 
     def _on_set_properties(self, from_server):
         log.simulator_ws('Setting properties')
@@ -181,7 +186,7 @@ class Simulator_WS(object):
         self._init_properties = dict_for_message(properties_message)
 
     def _on_start(self, from_server):
-        pass
+        log.simulator_ws('On Start')
 
     def _on_prediction(self, from_server):
         log.simulator_ws('On Prediction')
@@ -195,17 +200,17 @@ class Simulator_WS(object):
         self._step_iter = iter(self._sim_steps)
 
     def _on_reset(self, from_server):
-        pass
+        log.simulator_ws('On Reset')
 
     def _on_stop(self, from_server):
+        log.simulator_ws('On Stop')
         # fire the finished message if the previous step wasn't terminal
         # as it will already have been called
         # if not self._prev_step_terminal:
         #     self._sim._on_episode_finish()
-        pass
 
     def _on_finished(self, from_server):
-        pass
+        log.simulator_ws('On Finished')
 
     def _dump_message(self, message, fname):
         '''Helper function for dumping protobuf message contents'''
@@ -419,6 +424,7 @@ class Simulator_WS(object):
         elif isinstance(event, SimulateEvent):
             log.event("Simulate")
             try:
+                log.simulator("action: {}".format(event.action))
                 event.state, event.reward, event.terminal = \
                     self._sim._on_simulate(event.action)
             except Exception as e:

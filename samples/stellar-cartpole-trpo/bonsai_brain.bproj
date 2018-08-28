@@ -1,0 +1,12 @@
+{
+    "files": [
+        "README.md",
+        "requirements.txt",
+        "cartpole.ink",
+        "*.py"
+    ],
+    "training": {
+        "command": "python bridge.py",
+        "simulator": "bonsai.ai"
+    }
+}

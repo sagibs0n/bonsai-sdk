@@ -5,8 +5,10 @@ schema GameState
     Float32 rotation
 end
 
+constant Int8 left = 0
+constant Int8 right = 1
 schema Action
-    Int8{0, 1} command
+    Int8{left, right} command
 end
 
 schema CartPoleConfig

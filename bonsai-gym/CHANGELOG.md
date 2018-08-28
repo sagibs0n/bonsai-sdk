@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.8
+- Adds frame skipping to 'GymSimulator'
+
 ## 2.0.7
 - update http to https for all setup.py
 

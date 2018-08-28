@@ -2,11 +2,9 @@
 import os
 import pytest
 import sys
+from configparser import NoSectionError
 from bonsai_ai import Config
 from bonsai_ai.logger import Logger
-
-
-pytestmark = pytest.mark.skip(reason='T5373')
 
 
 @pytest.mark.parametrize(
@@ -150,43 +148,34 @@ def test_config_with_argv():
     assert True
 
 
-def test_config_with_argv_and_dev_profile():
-    config = Config(sys.argv, 'dev')
+def test_config_with_argv_and_dev_profile(temp_dot_bonsai):
+    config = Config(argv=sys.argv, profile='dev')
     assert config.accesskey == '00000000-1111-2222-3333-000000000001'
     assert config.username == 'admin'
-    assert config.url.startswith('http://localhost:')
+    assert config.url.startswith('http://localhost')
 
 
-def test_config_with_different_profile():
+def test_config_with_different_profile(temp_dot_bonsai):
     config = Config(profile='dev')
-    print("config url: {}".format(config.url))
-    print("config username: {}".format(config.username))
     assert config.accesskey == '00000000-1111-2222-3333-000000000001'
 
 
+@pytest.mark.xfail(raises=NoSectionError)
 def test_config_with_missing_profile():
     config = Config(profile='doesnt_exist')
-    assert config.url is None, "default url should be empty"
-    assert config.accesskey == 'None', "default accesskey should be None"
-    assert config.username == 'admin', "default usernamer should be None"
 
 
-def test_config_assignments():
+def test_config_assignments(temp_dot_bonsai):
+    config = Config(profile='dev')
+    assert config.url == 'http://localhost'
+    assert config.username == 'admin'
+    assert config.accesskey == '00000000-1111-2222-3333-000000000001'
+
+
+def test_config_default_url(temp_dot_bonsai):
     config = Config()
-    config.url = 'http://somewhere'
-    assert config.url == 'http://somewhere'
-
-    config.accesskey = '123'
-    assert config.accesskey == '123'
-
-    config.username = 'bob'
-    assert config.username == 'bob'
-
-    config.predict = True
-    assert config.predict is True
-
-    config.predict_version = 3
-    assert config.predict_version == 3
+    config._update(profile='test_default_url')
+    config.url == 'https://api.bons.ai'
 
 
 def test_logging_config():
@@ -200,10 +189,9 @@ def test_logging_config():
     assert('v2' in log._enabled_keys)
     assert('v3' in log._enabled_keys)
     assert('v4' not in log._enabled_keys)
-    log._enabled_keys = {}
 
 
-def test_verbose_logging():
+def test_verbose_logging(capsys, temp_dot_bonsai):
     config = Config([
         __name__,
         '--verbose'
@@ -211,25 +199,17 @@ def test_verbose_logging():
     log = Logger()
     assert(config.verbose is True)
     assert(log._enable_all is True)
-    assert(len(log._enabled_keys.keys()) == 0)
 
 
-def test_config_has_section():
+def test_config_has_section(temp_dot_bonsai):
     config = Config()
     assert config._has_section('dev') is True
 
 
-def test_config_doesnt_have_section():
+def test_config_doesnt_have_section(temp_dot_bonsai):
     config = Config()
     assert config._has_section('doesnt_exist') is False
 
-
-def test_config_update():
-    config = Config()
-    config._update(url='http://somewhere', accesskey='123', username='bob')
-    assert config.url == 'http://somewhere'
-    assert config.accesskey == '123'
-    assert config.username == 'bob'
 
 if __name__ == '__main__':
     pytest.main([__file__])
