@@ -1,5 +1,4 @@
-bonsai-cli
-bonsai-ai>=2.0.10
+bonsai-ai>=2.0.11
+bonsai-cli>=0.8.25
 numpy
 plotly
-

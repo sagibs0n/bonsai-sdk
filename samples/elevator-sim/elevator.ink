@@ -8,8 +8,11 @@ schema FloorState
 end
 
 # command options: up, open, down
+constant Int8 up = 0
+constant Int8 open = 1
+constant Int8 down = 2
 schema Action
-    Int8{0, 1, 2} command
+    Int8{up, open, down} command
 end
 
 # Possible option for configuration

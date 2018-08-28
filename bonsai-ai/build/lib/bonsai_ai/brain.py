@@ -21,6 +21,7 @@ INKLING_LOADED = 'Inkling Loaded'
 NOT_STARTED = 'Not Started'
 STARTING = 'Starting'
 IN_PROGRESS = 'In Progress'
+STOPPED = 'Stopped'
 COMPLETED = 'Completed'
 FINISHING = 'Finishing'
 
@@ -242,14 +243,23 @@ class Brain(object):
                 self._request_header(),
                 self._proxy_header()
                 )
-            self.state = self._status['state']
+            self._state = self._status['state']
 
-        except:
+        except Exception as e:
             print('WARNING: ignoring failed update in Brain init.')
 
     def ready(self):
         """ Returns True when the BRAIN is ready for training. """
-        return self.state == IN_PROGRESS
+        return self._state == IN_PROGRESS
+
+    def exists(self):
+        """ Returns True when the BRAIN exists (i.e. update succeeded) """
+        return self._state is not None
+
+    @property
+    def state(self):
+        """ Returns the current state of the target BRAIN """
+        return self._state
 
     @property
     def version(self):

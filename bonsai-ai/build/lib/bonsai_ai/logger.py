@@ -30,7 +30,10 @@ class Logger:
 
     def __init__(self):
         if self._impl is None:
-            self._enabled_keys = {'error': True}
+            self._enabled_keys = {
+                'error': True,
+                'info':  True
+            }
             self._enable_all = False
             self.__class__._impl = self.__dict__
         else:

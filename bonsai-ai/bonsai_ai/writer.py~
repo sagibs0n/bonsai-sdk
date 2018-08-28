@@ -1,0 +1,7 @@
+class Writer:
+    """
+    A base class to format and export simulation data for analytice
+    """
+    
+    def __init__(self):
+        

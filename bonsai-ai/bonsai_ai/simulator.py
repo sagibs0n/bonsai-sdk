@@ -10,6 +10,7 @@ from bonsai_ai.exceptions import BonsaiClientError, SimStateError, \
 from bonsai_ai.logger import Logger
 from bonsai_ai.simulator_ws import Simulator_WS
 from bonsai_ai.writer import JSONWriter, CSVWriter
+from bonsai_ai.event import FinishedEvent
 
 log = Logger()
 
@@ -337,6 +338,16 @@ class Simulator(object):
         if self.writer is not None:
             self.writer.add(obj, prefix)
 
+    def flush_record(self):
+        """
+        Flush the current record buffer, writing its contents to disk.
+        This action is performed automatically at the end of every call to
+        Simulator.run, but this flush_record allows event-driven simulator
+        integrations to take advantage of structured recording functionality.
+        """
+        if self.writer is not None:
+            self.writer.write()
+
     def _on_episode_start(self, episode_config):
         """ Callback hook for episode_start, called by event dispatcher """
         # update counters
@@ -395,8 +406,6 @@ class Simulator(object):
             'iteration_rate': self.iteration_rate
         }, 'statistics')
 
-        self.writer.write()
-
     def _now(self):
         return datetime.fromtimestamp(
             time()).strftime("%Y-%m-%d %H:%M:%S")
@@ -428,12 +437,13 @@ class Simulator(object):
             event = None
             event = self._ioloop.run_sync(self._impl.get_next_event, 1000)
         except KeyboardInterrupt:
-            pass
+            event = FinishedEvent()
         except BonsaiClientError as e:
             log.error(e)
             raise e.original_exception
         except BonsaiServerError as e:
             log.error(e)
+            event = FinishedEvent()
         except SimStateError as e:
             log.error(e)
             raise e
@@ -477,5 +487,7 @@ class Simulator(object):
         finally:
             if not success and self.writer is not None:
                 self.writer.close()
+            else:
+                self.flush_record()
 
         return success

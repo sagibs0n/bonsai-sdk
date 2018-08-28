@@ -2,7 +2,6 @@ import csv
 import json
 import os
 import sys
-import io
 
 
 class Writer(object):

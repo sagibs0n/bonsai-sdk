@@ -11,6 +11,7 @@ except ImportError:
     from mock import Mock, patch, ANY
 
 from bonsai_ai import Brain, Config
+from bonsai_ai.brain import IN_PROGRESS, STOPPED
 
 
 def test_brain(train_config):
@@ -26,10 +27,14 @@ def test_brain(train_config):
 
 def test_brain_update(blank_brain, v2_get):
     """ Tests brain update function """
+    assert blank_brain.exists()
+    assert blank_brain.state == IN_PROGRESS
     assert blank_brain.ready()
     assert blank_brain.latest_version == 1
     blank_brain.update()
     assert not blank_brain.ready()
+    assert blank_brain.state == STOPPED
+    assert blank_brain.exists()
     assert blank_brain.latest_version == 2
 
 

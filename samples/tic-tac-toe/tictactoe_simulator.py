@@ -191,7 +191,7 @@ class TicTacToeSim(Simulator):
         self._env = TicTacToeGame()
 
     def episode_finish(self):
-        log.gym("Episode {} reward: {}".format(
+        log.info("Episode {} reward: {}".format(
             self.episode_count, self.episode_reward))
 
     def episode_start(self, config):
@@ -207,5 +207,10 @@ if __name__ == "__main__":
     config = Config(sys.argv)
     brain = Brain(config)
     sim = TicTacToeSim(brain)
+
+    # If predicting print the board
+    if sim.predict:
+        log.set_enabled('game')
+
     while sim.run():
         continue

@@ -301,6 +301,18 @@ Adds the keys (prepended by `prefix`, if provied) from the given dictionary to t
 | `obj`      | A dictionary containing data to be added to the current log entry. |
 | `prefix`   | String prefix for the keys in `obj`. |
 
+## flush_record()
+
+```python
+sim.record_append({"foo": 23})
+sim.flush_record() # immediately flushes current record to disk
+sim.record_append({"foo": 32}) # adds this KVP to the new record
+```
+
+Flush the current record buffer, writing its contents to disk.
+
+This action is performed automatically at the end of every call to `Simulator.run`, but `flush_record` allows event-driven simulator integrations to take advantage of structured recording functionality.
+
 ## get_next_event()
 
 ```python

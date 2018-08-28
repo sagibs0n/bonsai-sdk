@@ -29,7 +29,7 @@ class GymSimulator(Simulator):
     simulator_name = None    # name of the simulation in the inkling file
     environment_name = None  # name of the OpenAI Gym environment
 
-    def __init__(self, brain, iteration_limit=0):
+    def __init__(self, brain, iteration_limit=0, skip_frame=1):
         """ initialize the GymSimulator with a bonsai.Config,
             the class variables will be used to setup the environment
             and simulator name as specified in inkling
@@ -47,6 +47,7 @@ class GymSimulator(Simulator):
         # optional parameters for controlling the simulation
         self._headless = cli_args.headless
         self._iteration_limit = iteration_limit    # default is no limit
+        self._skip_frame = skip_frame    # default is to process every frame
 
         # random seed
         self._env.seed(20)
@@ -123,36 +124,41 @@ class GymSimulator(Simulator):
         """
         # simulate
         gym_action = self.action_to_gym(action)
-        observation, reward, done, info = self.gym_simulate(gym_action)
+        rwd_accum = 0
+        for i in range(self._skip_frame):
+            observation, reward, done, info = self.gym_simulate(gym_action)
+            rwd_accum += reward
 
-        _log.gym('step action:' + str(gym_action) +
-                 ' state:' + str(observation) +
-                 ' reward:' + str(reward) +
-                 ' done:' + str(done))
+            _log.gym('step action:' + str(gym_action) +
+                     ' state:' + str(observation) +
+                     ' reward:' + str(reward) +
+                     ' done:' + str(done))
 
-        # episode limits
-        if (self._iteration_limit > 0):
-            if (self.iteration_count >= self._iteration_limit):
-                done = True
-                _log.gym('iteration_limit reached.')
+            # episode limits
+            if (self._iteration_limit > 0):
+                if (self.iteration_count >= self._iteration_limit):
+                    done = True
+                    _log.gym('iteration_limit reached.')
+                    break
 
-        # render if not headless
-        if not self._headless:
-            if 'human' in self._env.metadata['render.modes']:
-                self._env.render()
+            # render if not headless
+            if not self._headless:
+                if 'human' in self._env.metadata['render.modes']:
+                    self._env.render()
 
         # print a periodic status of iterations and episodes
         self._periodic_status_update()
+
+        reward = rwd_accum / (i + 1)
 
         # convert state and return to the server
         state = self.gym_to_state(observation)
         return state, reward, done
 
     def episode_finish(self):
-        # print('\n')
         # log how this episode went
-        log.info("Episode %s reward is %s",
-                 self.episode_count, self.episode_reward)
+        _log.info("Episode {} reward is {}".format(
+                  self.episode_count, self.episode_reward))
         _log.gym('finish episode: ' + str(self.episode_count) +
                  ' reward: ' + str(self.episode_reward))
         self._last_status = time()

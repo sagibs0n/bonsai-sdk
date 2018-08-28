@@ -2,8 +2,11 @@ schema GameState
     Int8 value
 end
 
+constant Int8 dec = -1
+constant Int8 stay = 0
+constant Int8 inc = 1
 schema PlayerMove
-    Int8{-1, 0, 1} delta
+    Int8{dec, stay, inc} delta
 end
 
 schema SimConfig

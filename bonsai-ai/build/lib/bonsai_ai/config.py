@@ -1,6 +1,8 @@
 # Copyright (C) 2018 Bonsai, Inc.
 
 import sys
+import os
+import platform
 from configparser import RawConfigParser
 from os.path import expanduser, join, splitext
 from os import environ
@@ -30,6 +32,7 @@ _USERNAME = 'username'
 _URL = 'url'
 _PROXY = 'proxy'
 _PROFILE = 'profile'
+_USE_COLOR = 'use_color'
 
 # Default bonsai api url
 _DEFAULT_URL = 'https://api.bons.ai'
@@ -144,6 +147,7 @@ class Config(object):
         self.accesskey = None
         self.username = None
         self.url = None
+        self.use_color = True
 
         self.brain = None
 
@@ -175,6 +179,7 @@ class Config(object):
             'username: {self.username!r}, ' \
             'brain: {self.brain!r}, ' \
             'url: {self.url!r}, ' \
+            'use_color: {self.use_color!r}, ' \
             'predict: {self.predict!r}, ' \
             'brain_version: {self.brain_version!r}, ' \
             'proxy: {self.proxy!r}' \
@@ -227,7 +232,10 @@ class Config(object):
         # read the values
         def assign_key(key):
             if config_parser.has_option(section, key):
-                self.__dict__[key] = config_parser.get(section, key)
+                if key.lower() == _USE_COLOR.lower():
+                    self.__dict__[key] = config_parser.getboolean(section, key)
+                else:
+                    self.__dict__[key] = config_parser.get(section, key)
 
         # get the profile
         section = _DEFAULT
@@ -238,14 +246,15 @@ class Config(object):
         else:
             section = profile
 
-        # if url is none set it to default bonsai api url
-        if self.url is None:
-            config_parser.set(self.profile, _URL, _DEFAULT_URL)
-
         assign_key(_ACCESSKEY)
         assign_key(_USERNAME)
         assign_key(_URL)
         assign_key(_PROXY)
+        assign_key(_USE_COLOR)
+
+        # if url is none set it to default bonsai api url
+        if self.url is None:
+            config_parser.set(self.profile, _URL, _DEFAULT_URL)
 
     def _parse_brains(self):
         ''' parse the './.brains' config file
@@ -381,21 +390,38 @@ class Config(object):
         if (not self._config.has_section(key) and key != _DEFAULT):
             self._config.add_section(key)
 
+    def _config_files(self):
+        return [join(expanduser('~'), _DOT_BONSAI), join('.', _DOT_BONSAI)]
+
     def _read_config(self):
-        config_path = join(expanduser('~'), _DOT_BONSAI)
+        # verify that at least one of the config files exists
+        # as RawConfigParser ignores missing files
+        found = False
+        config_files = self._config_files()
+        for path in config_files:
+            if os.access(path, os.R_OK):
+                found = True
+                break
+        if not found:
+            # don't throw a runtime error, we may want an uninitialized
+            # config.
+            print('WARNING: Unable to find bonsai config file at: ' +
+                  str(config_files) +
+                  '\nPlease run `bonsai configure`.')
+
         config = RawConfigParser(allow_no_value=True)
-        config.read([config_path, _DOT_BONSAI])
+        config.read(config_files)
         return config
 
     def _set_profile(self, section):
         self._make_section(section)
         self.profile = section
         if section == _DEFAULT:
-            self._config.remove_option(_DEFAULT, _PROFILE)
+            self._config.set(_DEFAULT, _PROFILE, 'DEFAULT')
         else:
             self._config.set(_DEFAULT, _PROFILE, str(section))
 
-    def _write(self):
+    def _write_global_config(self):
         config_path = join(expanduser('~'), _DOT_BONSAI)
         with open(config_path, 'w') as f:
             self._config.write(f)
@@ -428,6 +454,10 @@ class Config(object):
         """ Returns a dictionary of items in a section """
         return self._config.items(section)
 
+    def _defaults(self):
+        """ Returns an ordered dict of items in the DEFAULT section """
+        return self._config.defaults()
+
     def _update(self, **kwargs):
         """Updates the configuration with the Key/value pairs in kwargs."""
         if not kwargs:
@@ -435,7 +465,9 @@ class Config(object):
         for key, value in kwargs.items():
             if key.lower() == _PROFILE.lower():
                 self._set_profile(value)
+            elif key.lower() == _USE_COLOR.lower():
+                self._config.set(self.profile, key, value)
             else:
                 self._config.set(self.profile, key, str(value))
-        self._write()
+        self._write_global_config()
         self._parse_config(self.profile)
