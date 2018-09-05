@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.12
+- Fix bug related to default url not being set on the Config object
+
 ## 2.0.11
 - Flush record buffer on every call to `run`
 - Improved config file error reporting

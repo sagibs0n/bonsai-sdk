@@ -254,7 +254,7 @@ class Config(object):
 
         # if url is none set it to default bonsai api url
         if self.url is None:
-            config_parser.set(self.profile, _URL, _DEFAULT_URL)
+            self.url = _DEFAULT_URL
 
     def _parse_brains(self):
         ''' parse the './.brains' config file

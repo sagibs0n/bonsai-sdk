@@ -1,3 +1,3 @@
-bonsai-ai>=2.0.11
+bonsai-ai>=2.0.12
 bonsai-cli>=0.8.25
 bonsai-gym>=2.0.8
