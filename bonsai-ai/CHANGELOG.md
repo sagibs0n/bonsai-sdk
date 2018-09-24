@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.13
+- Add reconnect parameters to config
+- Add reconnect behavior with exponetial backoff
+- Add Brain.exists and Brain.ready
+
 ## 2.0.12
 - Fix bug related to default url not being set on the Config object
 

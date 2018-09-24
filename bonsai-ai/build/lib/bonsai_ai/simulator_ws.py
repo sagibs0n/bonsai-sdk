@@ -2,9 +2,7 @@
 
 # tornado
 from tornado import gen
-from tornado.websocket import websocket_connect, WebSocketClosedError, \
-    StreamClosedError
-from tornado.httpclient import HTTPRequest
+from tornado.websocket import WebSocketClosedError, StreamClosedError
 
 # protobuf
 from google.protobuf.json_format import MessageToJson
@@ -21,9 +19,8 @@ from bonsai_ai.exceptions import SimulateError, EpisodeStartError, \
     BonsaiServerError, EpisodeFinishError
 from bonsai_ai.inkling_factory import InklingMessageFactory
 from bonsai_ai.logger import Logger
+from bonsai_ai.simulator_connection import SimulatorConnection
 
-
-_CONNECT_TIMEOUT_SECS = 60
 
 log = Logger()
 
@@ -45,31 +42,9 @@ class Simulator_WS(object):
     def __init__(self, brain, sim, simulator_name):
         self.brain = brain
         self.name = simulator_name
-        self.objective_name = None
         self._sim = sim
-
-        self._ws = None
-        self._prev_message_type = ServerToSimulator.UNKNOWN
-
-        # acknowledge_register
-        # schemas are of type DescriptorProto
-        self._properties_schema = None
-        self._output_schema = None
-        self._prediction_schema = None
-        self._sim_id = -1
-
-        # set_properties
-        self._init_properties = {}
-        self._initial_state = None
-
-        # current batch of simulation steps
-        self._sim_steps = []
-        self._step_iter = None
-        self._prev_step_terminal = [False]
-        self._prev_step_finish = False
-
-        # Caching actions for predictor
-        self._predictor_action = None
+        self._reset_simulator_ws()
+        self._sim_connection = SimulatorConnection(brain, sim.predict)
 
         # protobuf discriptor cache
         self._inkling = InklingMessageFactory()
@@ -107,6 +82,32 @@ class Simulator_WS(object):
             ServerToSimulator.FINISHED:
                 '_on_finished'
         }
+
+    def _reset_simulator_ws(self):
+        """ Reset state of simulator_ws"""
+        log.simulator_ws('Resetting simulator_ws')
+        self.objective_name = None
+        self._prev_message_type = ServerToSimulator.UNKNOWN
+
+        # acknowledge_register
+        # schemas are of type DescriptorProto
+        self._properties_schema = None
+        self._output_schema = None
+        self._prediction_schema = None
+        self._sim_id = -1
+
+        # set_properties
+        self._init_properties = {}
+        self._initial_state = None
+
+        # current batch of simulation steps
+        self._sim_steps = []
+        self._step_iter = None
+        self._prev_step_terminal = [False]
+        self._prev_step_finish = False
+
+        # Caching actions for predictor
+        self._predictor_action = None
 
     def _new_state_message(self):
         """
@@ -245,31 +246,6 @@ class Simulator_WS(object):
             prediction, self._prediction_schema)
         self._predictor_action = dict_for_message(action_message)
 
-    @gen.coroutine
-    def _connect(self):
-        """
-        Fire up a websocket connection.
-        """
-        try:
-            if self._sim.predict is True:
-                url = self.brain._prediction_url()
-            else:
-                url = self.brain._simulation_url()
-
-            log.info("trying to connect: {}".format(url))
-            req = HTTPRequest(
-                url,
-                connect_timeout=_CONNECT_TIMEOUT_SECS,
-                request_timeout=_CONNECT_TIMEOUT_SECS)
-            req.headers['Authorization'] = self.brain.config.accesskey
-            req.headers['User-Agent'] = self.brain._user_info
-
-            self._ws = yield websocket_connect(req)
-        except Exception as e:
-            raise gen.Return(repr(e))
-        else:
-            raise gen.Return(None)
-
     def _configure_writer(self):
         self._sim.writer.enable_keys(
             self._fields_for_schema(self._properties_schema), 'config')
@@ -306,29 +282,24 @@ class Simulator_WS(object):
         if (to_server.message_type):
             out_bytes = to_server.SerializeToString()
             try:
-                yield self._ws.write_message(out_bytes, binary=True)
+                yield self._sim_connection.client.write_message(
+                    out_bytes, binary=True)
             except (StreamClosedError, WebSocketClosedError) as e:
-                raise BonsaiServerError(
-                    "Websocket connection closed. Code: {}, Reason: {}".format(
-                        self._ws.close_code, self._ws.close_reason))
+                self._sim_connection.handle_disconnect()
+                self._reset_simulator_ws()
+                return
 
         # read response from server
-        in_bytes = yield self._ws.read_message()
+        in_bytes = yield self._sim_connection.client.read_message()
         if in_bytes is None:
-            raise BonsaiServerError(
-                "Websocket connection closed. Code: {}, Reason: {}".format(
-                    self._ws.close_code, self._ws.close_reason))
+            self._sim_connection.handle_disconnect()
+            self._reset_simulator_ws()
+            return
 
         from_server = ServerToSimulator()
         from_server.ParseFromString(in_bytes)
         log.pb("from_server: {}".format(MessageToJson(from_server)))
         self._on_recv(from_server)
-
-    @gen.coroutine
-    def close_connection(self):
-        """ Close websocket connection """
-        if self._ws is not None:
-            yield self._ws.close()
 
     def _process_sim_step(self):
         try:
@@ -352,12 +323,13 @@ class Simulator_WS(object):
         """ Update the internal event machine and return the next
         event for processing"""
         # Grab a web socket connection if needed
-        if self._ws is None:
-            message = yield self._connect()
+        if self._sim_connection.client is None:
+            message = yield self._sim_connection.connect()
             # If the connection failed, report
             if message is not None:
-                raise BonsaiServerError(
-                    "Error while connecting to websocket: {}".format(message))
+                self._sim_connection.handle_disconnect(message=message)
+                self._reset_simulator_ws()
+                raise gen.Return(UnknownEvent())
 
         if self._prev_message_type == ServerToSimulator.PREDICTION:
             if self._prev_step_terminal[0]:
@@ -441,7 +413,7 @@ class Simulator_WS(object):
             log.simulator_ws('\tF')
         elif isinstance(event, FinishedEvent):
             log.event("Finished")
-            self.close_connection()
+            self._sim_connection.close()
             raise gen.Return(False)
         elif isinstance(event, UnknownEvent):
             log.event("No Operation")

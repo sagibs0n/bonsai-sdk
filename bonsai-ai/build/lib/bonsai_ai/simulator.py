@@ -412,7 +412,7 @@ class Simulator(object):
 
     def close(self):
         """ Closes websocket Connection """
-        self._impl.close_connection()
+        self._impl._sim_connection.close()
 
     def get_next_event(self):
         """

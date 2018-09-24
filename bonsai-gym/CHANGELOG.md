@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.9
+- Remove PPC64 references
+
 ## 2.0.8
 - Adds frame skipping to 'GymSimulator'
 

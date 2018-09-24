@@ -211,5 +211,26 @@ def test_config_doesnt_have_section(temp_dot_bonsai):
     assert config._has_section('doesnt_exist') is False
 
 
+def test_default_retry_timeout():
+    config = Config()
+    assert config.retry_timeout == 3000
+
+
+def test_argv_retry_timeout():
+    config = Config([
+        __name__,
+        '--retry-timeout', '10'
+    ])
+    assert config.retry_timeout == 10
+
+
+@pytest.mark.xfail(raises=ValueError)
+def test_invalid_retry_timeout_throws_error():
+    config = Config([
+        __name__,
+        '-retry-timeout', '-1000'
+    ])
+
+
 if __name__ == '__main__':
     pytest.main([__file__])

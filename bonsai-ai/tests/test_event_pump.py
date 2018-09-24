@@ -21,12 +21,38 @@ def test_event_pump(train_sim):
     assert isinstance(train_sim.get_next_event(), SimulateEvent)
 
 
-def test_server_error(train_sim, monkeypatch):
-    # monkeypatched `Simulator._connect` triggers `BonsaiServerError`,
-    # which gets logged and percolated through `Simulator.get_next_event`
-    # in the form of a `FinishedEvent`
-    @gen.coroutine
-    def _connect(*args, **kwargs):
-        raise gen.Return("Couldn't connect...")
-    monkeypatch.setattr(train_sim._impl, '_connect', _connect)
-    assert isinstance(train_sim.get_next_event(), FinishedEvent)
+def test_server_error(flaky_train_sim):
+    flaky_train_sim._impl._sim_connection._retry_timeout_seconds = 0
+    assert isinstance(flaky_train_sim.get_next_event(), UnknownEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), UnknownEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), EpisodeStartEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), SimulateEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), SimulateEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), SimulateEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), EpisodeFinishEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), UnknownEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), UnknownEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), EpisodeStartEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), SimulateEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), SimulateEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), SimulateEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), FinishedEvent)
+
+
+def test_unable_to_connect_no_operation(flaky_train_sim):
+    assert isinstance(flaky_train_sim.get_next_event(), UnknownEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), UnknownEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), EpisodeStartEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), SimulateEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), SimulateEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), SimulateEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), EpisodeFinishEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), UnknownEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), UnknownEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), EpisodeStartEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), SimulateEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), SimulateEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), SimulateEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), UnknownEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), UnknownEvent)
+    assert isinstance(flaky_train_sim.get_next_event(), UnknownEvent)

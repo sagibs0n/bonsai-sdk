@@ -4,7 +4,6 @@ import csv
 import json
 import os
 import io
-
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
 
 
@@ -67,6 +66,8 @@ def test_csv_writing(record_csv_sim):
 
 
 def test_file_change(record_csv_sim, tmpdir):
+    if os.path.isdir("sub"):
+        os.rmdir("sub")
     os.mkdir("sub")
     while record_csv_sim._impl._prev_message_type != ServerToSimulator.RESET:
         if record_csv_sim._impl._prev_message_type == \
@@ -127,6 +128,8 @@ def test_file_change(record_csv_sim, tmpdir):
 
 
 def test_predict_mode_record(record_csv_predict, tmpdir):
+    if os.path.isdir("sub"):
+        os.rmdir("sub")
     os.mkdir("sub")
     rcp = record_csv_predict
     sim_steps = 100

@@ -16,7 +16,8 @@ except ImportError:
 
 
 from bonsai_ai import Simulator, Brain, Config, Luminance, Predictor
-from ws import open_bonsai_ws, close_bonsai_ws, set_predict_mode
+from ws import open_bonsai_ws, close_bonsai_ws, set_predict_mode, \
+    set_flaky_mode, reset_count, set_fail_duration
 
 
 class CartSim(Simulator):
@@ -151,7 +152,7 @@ class SequencingSim(Simulator):
 
 
 @pytest.fixture(autouse=True)
-def mock_get(monkeypatch):
+def mock_get(monkeypatch, request):
     def _get(*args, **kwargs):
         response = Mock()
         test_json = {'versions': [{'version': 1}],
@@ -165,7 +166,7 @@ def mock_get(monkeypatch):
 def v2_get(monkeypatch):
     def _get(*args, **kwargs):
         response = Mock()
-        test_json = {'versions': [{'version': 2}],
+        test_json = {'versions': [{'version': 4}],
                      'state': 'Stopped'}
         response.json.return_value = test_json
         return response
@@ -221,6 +222,22 @@ def record_csv_config_predict():
 
 @pytest.fixture
 def train_config():
+    set_flaky_mode(False)
+    return Config([
+        __name__,
+        '--accesskey=VALUE',
+        '--username=alice',
+        '--url=http://localhost:8889',
+        '--brain=cartpole',
+        '--proxy=VALUE',
+    ])
+
+
+@pytest.fixture
+def flaky_train_config():
+    set_flaky_mode(True)
+    set_fail_duration(15)
+    reset_count()
     return Config([
         __name__,
         '--accesskey=VALUE',
@@ -234,6 +251,7 @@ def train_config():
 @pytest.fixture
 def predict_config():
     set_predict_mode(True)
+    set_flaky_mode(False)
     return Config([
         __name__,
         '--accesskey=VALUE',
@@ -283,6 +301,14 @@ def record_csv_predict(record_csv_config_predict):
 @pytest.fixture
 def train_sim(train_config):
     brain = Brain(train_config)
+    sim = CartSim(brain, 'cartpole_simulator')
+    sim._ioloop = IOLoop.current()
+    return sim
+
+
+@pytest.fixture
+def flaky_train_sim(flaky_train_config):
+    brain = Brain(flaky_train_config)
     sim = CartSim(brain, 'cartpole_simulator')
     sim._ioloop = IOLoop.current()
     return sim

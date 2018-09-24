@@ -8,6 +8,9 @@ log = logging.getLogger('gym_simulator')
 log.setLevel(logging.DEBUG)
 
 
+SKIP_FRAME = 4
+
+
 class MountainCarContinuous(GymSimulator):
     environment_name = 'MountainCarContinuous-v0'
     simulator_name = 'mountaincar_continuous_simulator'
@@ -28,5 +31,6 @@ if __name__ == '__main__':
     # create a brain, openai-gym environment, and simulator
     config = Config(sys.argv)
     brain = Brain(config)
-    sim = MountainCarContinuous(brain)
+    sim = MountainCarContinuous(
+        brain, skip_frame=SKIP_FRAME)
     sim.run_gym()

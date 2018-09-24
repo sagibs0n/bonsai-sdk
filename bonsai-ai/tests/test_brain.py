@@ -27,15 +27,15 @@ def test_brain(train_config):
 
 def test_brain_update(blank_brain, v2_get):
     """ Tests brain update function """
-    assert blank_brain.exists()
-    assert blank_brain.state == IN_PROGRESS
-    assert blank_brain.ready()
+    assert blank_brain._state == IN_PROGRESS
     assert blank_brain.latest_version == 1
-    blank_brain.update()
-    assert not blank_brain.ready()
+
+    # Brain.update gets called automatically so that these
+    # properties stay in sync with the service
+    assert blank_brain.ready is False
     assert blank_brain.state == STOPPED
-    assert blank_brain.exists()
-    assert blank_brain.latest_version == 2
+    assert blank_brain.exists is True
+    assert blank_brain.latest_version == 4
 
 
 def test_brain_predict_version():
@@ -45,6 +45,14 @@ def test_brain_predict_version():
     assert brain.config.predict is True
     assert brain.config.brain_version == 4
     assert brain.version == 4
+
+
+def test_brain_predict_exist_ready(predict_config, v2_get):
+    """ Tests existence and readiness in predict mode """
+    brain = Brain(predict_config)
+    brain.update()
+    assert brain.exists is True
+    assert brain.ready is True
 
 
 def set_proxies(http_proxy, https_proxy, all_proxy):

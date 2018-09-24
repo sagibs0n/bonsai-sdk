@@ -22,6 +22,10 @@ class EpisodeFinishError(BonsaiClientError):
         super(EpisodeFinishError, self).__init__("Error in episode_finish", e)
 
 
+class RetryTimeoutError(Exception):
+    pass
+
+
 class BonsaiServerError(Exception):
     pass
 

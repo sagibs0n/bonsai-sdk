@@ -83,6 +83,12 @@ _RECORD_HELP = \
     Parameter is the target file for recorded data. Data format will be
     inferred from the file extension. Currently supports ".json" and ".csv".
     """
+_RETRY_TIMEOUT_HELP = \
+    """
+    The time in seconds that reflects how long the simulator will attempt to
+    reconnect to the backend. 0 represents do not reconnect. -1 represents
+    retry forever. The default is set to 3000 seconds(5 minutes).
+    """
 # legacy help strings
 _TRAIN_BRAIN_HELP = "The name of the BRAIN to connect to for training."
 _PREDICT_BRAIN_HELP = \
@@ -154,6 +160,7 @@ class Config(object):
         self.predict = False
         self.brain_version = 0
         self._proxy = None
+        self._retry_timeout_seconds = 3000
 
         self.verbose = False
         self.record_file = None
@@ -182,7 +189,8 @@ class Config(object):
             'use_color: {self.use_color!r}, ' \
             'predict: {self.predict!r}, ' \
             'brain_version: {self.brain_version!r}, ' \
-            'proxy: {self.proxy!r}' \
+            'proxy: {self.proxy!r}, ' \
+            'retry_timeout: {self.retry_timeout!r}, ' \
             '}}'.format(self=self)
 
     @property
@@ -217,6 +225,18 @@ class Config(object):
         the log filename"""
         _, fmt = splitext(self.record_file)
         return fmt
+
+    @property
+    def retry_timeout(self):
+        return self._retry_timeout_seconds
+
+    @retry_timeout.setter
+    def retry_timeout(self, value):
+        value = int(value)
+        if value < -1:
+            raise ValueError(
+                'Retry timeout must be a positive integer, 0, or -1.')
+        self._retry_timeout_seconds = value
 
     def _parse_env(self):
         ''' parse out environment variables used in hosted containers '''
@@ -334,6 +354,8 @@ class Config(object):
         parser.add_argument('--log', nargs='+', help=_LOG_HELP)
         parser.add_argument('--record', nargs=1, default=None,
                             help=_RECORD_HELP)
+        parser.add_argument('--retry-timeout', type=int,
+                            help=_RETRY_TIMEOUT_HELP)
 
         args, remainder = parser.parse_known_args(argv[1:])
 
@@ -368,6 +390,9 @@ class Config(object):
         if args.record:
             self.record_file = args.record[0]
             self.record_enabled = True
+
+        if args.retry_timeout is not None:
+            self.retry_timeout = args.retry_timeout
 
         brain_version = None
         if args.predict is not None:

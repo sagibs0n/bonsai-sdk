@@ -52,6 +52,34 @@ print(brain.description)
 
 Returns the user-provided description for the BRAIN.
 
+## exists
+
+```python
+if brain.exists:
+    ...
+```
+
+Returns a boolean indicating whether a BRAIN with this name exists for
+this user. In predict mode, also checks whether the configured BRAIN
+version exists.
+
+## ready
+
+```python
+if brain.exists and brain.ready:
+    ...
+```
+
+Returns a boolean indicating whether this BRAIN is ready for training.
+
+## state
+
+```python
+print(brain.state)
+```
+
+Returns the server-side state of this BRAIN.
+
 ## version
 
 ```python

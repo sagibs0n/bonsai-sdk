@@ -115,7 +115,10 @@ class Brain(object):
     Attributes:
         config:         The configuration object used to connect to this BRAIN.
         description:    A user generated description of this BRAIN.
+        exists:         Whether this BRAIN exists on the server.
         name:           The name of this BRAIN.
+        ready:          Whether this BRAIN is ready for training.
+        state:          Current state of this BRAIN on the server.
         version:        The currently selected version of the BRAIN.
         latest_version: The latest version of the BRAIN.
 
@@ -248,17 +251,34 @@ class Brain(object):
         except Exception as e:
             print('WARNING: ignoring failed update in Brain init.')
 
+    @property
     def ready(self):
         """ Returns True when the BRAIN is ready for training. """
+        self.update()
+        if self.config.predict:
+            return self._state == STOPPED or self._state == COMPLETED
         return self._state == IN_PROGRESS
 
+    @property
     def exists(self):
+        self.update()
         """ Returns True when the BRAIN exists (i.e. update succeeded) """
+        if self.config.predict:
+            return self._state is not None and self._version_exists()
+
         return self._state is not None
+
+    def _version_exists(self):
+        for v in self._info['versions']:
+            if v['version'] == self.version:
+                return True
+
+        return False
 
     @property
     def state(self):
         """ Returns the current state of the target BRAIN """
+        self.update()
         return self._state
 
     @property
