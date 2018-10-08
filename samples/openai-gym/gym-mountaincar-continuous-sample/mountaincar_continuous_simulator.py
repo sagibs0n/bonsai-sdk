@@ -8,7 +8,7 @@ log = logging.getLogger('gym_simulator')
 log.setLevel(logging.DEBUG)
 
 
-SKIP_FRAME = 4
+SKIP_FRAME = 6
 
 
 class MountainCarContinuous(GymSimulator):

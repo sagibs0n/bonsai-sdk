@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.14
+- Improved loading of proxy settings.
+- ping_interval parameters in Config
+- sim_connection sends pings over specified interval
+- change default retry timeout from 3000 seconds to 300 seconds.
+- Added `file_path` to config
+- Added input validation around ping-intervals
+
 ## 2.0.13
 - Add reconnect parameters to config
 - Add reconnect behavior with exponetial backoff

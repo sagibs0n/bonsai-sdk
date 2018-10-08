@@ -2,7 +2,7 @@
     "executable": "mountaincar_continuous_simulator.py",
     "prediction": {
         "episodes": 100,
-        "mean": 88
+        "mean": 0
     },
     "training": {
         "concepts": [

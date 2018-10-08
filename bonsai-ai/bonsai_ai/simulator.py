@@ -435,7 +435,7 @@ class Simulator(object):
         """
         try:
             event = None
-            event = self._ioloop.run_sync(self._impl.get_next_event, 1000)
+            event = self._ioloop.run_sync(self._impl.get_next_event)
         except KeyboardInterrupt:
             event = FinishedEvent()
         except BonsaiClientError as e:
@@ -473,7 +473,7 @@ class Simulator(object):
         """
         try:
             success = False
-            success = self._ioloop.run_sync(self._impl.run, 1000)
+            success = self._ioloop.run_sync(self._impl.run)
         except KeyboardInterrupt:
             pass
         except BonsaiClientError as e:

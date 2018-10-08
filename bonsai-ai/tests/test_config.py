@@ -213,7 +213,7 @@ def test_config_doesnt_have_section(temp_dot_bonsai):
 
 def test_default_retry_timeout():
     config = Config()
-    assert config.retry_timeout == 3000
+    assert config.retry_timeout == 300
 
 
 def test_argv_retry_timeout():
@@ -231,6 +231,44 @@ def test_invalid_retry_timeout_throws_error():
         '-retry-timeout', '-1000'
     ])
 
+
+def test_default_ping_interval():
+    config = Config()
+    assert config.ping_interval == 0
+
+
+def test_argv_ping_interval():
+    config = Config([
+        __name__,
+        '--ping-interval', '10'
+    ])
+    assert config.ping_interval == 10
+
+
+def test_valid_ping_intervals():
+    config = Config()
+    config.ping_interval = 1
+    config.ping_interval = 0
+    config.ping_interval = 239
+
+
+def test_invalid_ping_interval_throws_error():
+    config = Config()
+    with pytest.raises(ValueError):
+        config.ping_interval = -1
+    with pytest.raises(ValueError):
+        config.ping_interval = 0.1
+    with pytest.raises(ValueError):
+        config.ping_interval = 250
+
+
+@pytest.mark.xfail(raises=SystemExit)
+def test_invalid_retry_timeout_argv_throws_error():
+    """ Incorrect values in argparse raise a SystemExit """
+    config = Config([
+        __name__,
+        '--ping-interval', 'foo'
+    ])
 
 if __name__ == '__main__':
     pytest.main([__file__])

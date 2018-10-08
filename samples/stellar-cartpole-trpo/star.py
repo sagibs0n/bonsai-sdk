@@ -1,26 +1,13 @@
+"""
+This file contains machine teaching logic such as state, terminal, action,
+and reward functions.
+"""
+
 import math
 import random
-
 from bonsai_ai.logger import Logger
 
-
-def noise0(var):
-    return var
-
-
-def noise20(var):
-    level = random.uniform(.9, 1.1)
-    return var*level
-
-
-def noise40(var):
-    level = random.uniform(.8, 1.2)
-    return var*level
-
-
-noise_func = noise0
 log = Logger()
-
 
 class Star():
     iteration_count = 0
@@ -33,17 +20,22 @@ class Star():
         self.x_threshold = 2.4
 
     def state(self, model_state):
+        """ This function converts the simulator state into the state
+        representation the brain uses to learn. """
         self.model_state = model_state
         brain_state = {
-            'position': noise_func(model_state[0]),
-            'velocity': noise_func(model_state[1]),
-            'angle': noise_func(model_state[2]),
-            'rotation': noise_func(model_state[3]),
+            'position': model_state[0],
+            'velocity': model_state[1],
+            'angle': model_state[2],
+            'rotation': model_state[3],
         }
         print(brain_state)
         return brain_state
 
     def terminal(self, model_state):
+        """ Terminal conditions specify when to end an episode, typically due
+        to success, failure, or running out of time. In this case, we only
+        terminate when the pole falls down. """
         print(model_state)
         x, x_dot, theta, theta_dot = model_state
         done = (x < -self.x_threshold or
@@ -54,6 +46,9 @@ class Star():
         return done
 
     def action(self, brain_action):
+        """ This function converts the action representation the brain learns
+        to use into the action representation the simulator uses to act in the
+        simulated environment. """
         self.iteration_count += 1
         model_action = 0
         if brain_action['command'] > 0:
@@ -61,6 +56,11 @@ class Star():
         return model_action
 
     def reward(self, done):
+        """ Give the brain feedback on how well it is doing in this episode.
+        In this case, this is simply 1 every time period that the pole is
+        balanced. The brain's job is to learn to maximize the reward it gets
+        during the episode, which corresponds to balancing as long as possible.
+        """
         if not done:
             reward = 1.0
         elif self.steps_beyond_done is None:

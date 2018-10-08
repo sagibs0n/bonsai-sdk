@@ -43,7 +43,7 @@ export JAVA_HOME=/usr/local/java
 
 ### 1.5 Install the Bonsai CLI
 
-If you don't already have the Bonsai CLI installed, please complete steps 3 (Install Prerequisistes) and 4 (Setup the Bonsai CLI) of http://docs.bons.ai/guides/getting-started.html to get the CLI running on your computer.
+Install the Bonsai CLI by following our [detailed CLI installation guide](https://docs.bons.ai/guides/cli-install-guide.html)
 
 ### 1.6 Install Dependencies
 

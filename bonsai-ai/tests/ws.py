@@ -19,32 +19,39 @@ def count_me(fnc):
     return increment
 
 
-class BrainRequestHandler(web.RequestHandler):
-    status_response = {'versions': [{'version': 3}, {'version': 2}],
-                       'state': 'Not Started'}
+BRAIN_STATUS = {'versions': [{'version': 3}, {'version': 2}],
+                'state': 'Not Started'}
 
-    user_response = {'brains': [{'name': "cartpole"}]}
+SIMS = {"cartpole_simulator": {"inactive": [], "active": []},
+        "random_simulator": {"inactive": [], "active": []}}
+
+USER_STATUS = {'brains': [{'name': "cartpole"}]}
+
+
+class BrainRequestHandler(web.RequestHandler):
 
     def get(self):
         uri = self.request.uri
         endpoint = uri.split('/')[-1]
         if (endpoint == 'alice'):
-            self.write(self.user_response)
+            self.write(USER_STATUS)
+        elif (endpoint == 'sims'):
+            self.write(SIMS)
         else:
-            self.write(self.status_response)
+            self.write(BRAIN_STATUS)
 
     def put(self):
         uri = self.request.uri
         endpoint = uri.split('/')[-1]
 
         if endpoint == 'train':
-            self.status_response['state'] = "In Progress"
+            BRAIN_STATUS['state'] = "In Progress"
         elif endpoint == 'stop':
-            self.status_response['state'] = "Stopped"
+            BRAIN_STATUS['state'] = "Stopped"
         else:
             print("WS.PY: unsupported endpoint: {}".format(uri))
 
-        self.write(self.status_response)
+        self.write(BRAIN_STATUS)
 
 
 class BonsaiWS(websocket.WebSocketHandler):
@@ -151,12 +158,21 @@ class BonsaiWS(websocket.WebSocketHandler):
         from_sim = SimulatorToServer()
         from_sim.ParseFromString(in_bytes)
         self._validate_message(from_sim)
+        sim_name = from_sim.register_data.simulator_name
         mtype = self._dispatch_mtype(from_sim.message_type)
 
         if self._FLAKY and \
            self._count > self._fail_point and \
            self._count < self._fail_point + self._fail_duration:
             self.close(code=1008, reason="Policy violation.")
+            return
+        elif BRAIN_STATUS['state'] == "Stopped":
+            self.close(code=1001, reason="Brain no longer training")
+            return
+        elif (from_sim.message_type == SimulatorToServer.REGISTER and
+              sim_name not in SIMS.keys()):
+            self.close(code=1008,
+                       reason="Simulator {} does not exist.".format(sim_name))
             return
 
         # dict->json->Message->binary
@@ -171,6 +187,12 @@ class BonsaiWS(websocket.WebSocketHandler):
     def on_close(self):
         pass
 
+    def on_ping(self, data):
+        print('Received PING: {}'.format(data))
+
+    def on_pong(self, data):
+        print("Received PONG: {}".format(data))
+
 
 # These could be probably be defined dynamically, but the fixtures
 # `predict_config` and `train_config` both reflect these values.
@@ -181,6 +203,7 @@ application = web.Application([
     (r'/v1/alice/cartpole/train', BrainRequestHandler),
     (r'/v1/alice/cartpole/stop', BrainRequestHandler),
     (r'/v1/alice/cartpole', BrainRequestHandler),
+    (r'/v1/alice/cartpole/sims', BrainRequestHandler),
     (r'/v1/alice', BrainRequestHandler)
 ])
 

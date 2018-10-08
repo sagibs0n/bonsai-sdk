@@ -1,3 +1,5 @@
+# Inkling code for balancing a pole on a cart
+
 schema GameState
    Float32 position,
    Float32 velocity,
@@ -5,8 +7,9 @@ schema GameState
    Float32 rotation
 end
 
+
 schema Action
-   Float32{-1.0:1.0} command
+   Int8{-1,1} command
 end
 
 schema CartPoleConfig
@@ -19,7 +22,7 @@ simulator the_simulator(CartPoleConfig)
    state (GameState)
 end
 
-concept balance is estimator
+concept balance is classifier
    predicts (Action)
    follows input(GameState)
    feeds output
@@ -28,11 +31,6 @@ end
 
 curriculum balance_curriculum
    train balance
-   using algorithm TRPO
-      learning_rate => 5,
-      hidden_layer_size_descriptor => [48, 48],
-      hidden_layer_activation_descriptor => ["relu", "relu"]
-   end
 
    with simulator the_simulator
    objective balance_objective

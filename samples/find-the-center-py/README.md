@@ -11,7 +11,7 @@ If you're using the web interface, please follow the [quick start guide](http://
 ## LOCAL (CLI) GUIDE
 
 ### CLI INSTALLATION
-1. Install the Bonsai CLI by following our [detailed CLI installation guide](http://docs.bons.ai/guides/cli-guide.html).
+1. Install the Bonsai CLI by following our [detailed CLI installation guide](https://docs.bons.ai/guides/cli-install-guide.html)
 
 ### CREATE YOUR BRAIN
 1. Setup your BRAIN's local project folder.

@@ -2,7 +2,6 @@
 
 import sys
 import os
-import platform
 from configparser import RawConfigParser
 from os.path import expanduser, join, splitext
 from os import environ
@@ -11,19 +10,21 @@ import json
 
 try:
     # Try python 3 import
-    from urllib.parse import urljoin, urlparse, urlunparse
+    from urllib.parse import urlparse, urlunparse
+    from urllib.request import getproxies
 except ImportError:
-    from urlparse import urljoin, urlparse, urlunparse
+    from urlparse import urlparse, urlunparse
+    from urllib import getproxies
 
 from bonsai_ai.logger import Logger
 
 
 log = Logger()
 
-# proxy environment variables on Unix systems
-_ALL_PROXY = 'all_proxy'
-_HTTP_PROXY = 'http_proxy'
-_HTTPS_PROXY = 'https_proxy'
+# keys into for getproxies() dict
+_ALL_PROXY = 'all'
+_HTTP_PROXY = 'http'
+_HTTPS_PROXY = 'https'
 
 # .bonsai config file keys
 _DEFAULT = 'DEFAULT'
@@ -87,7 +88,14 @@ _RETRY_TIMEOUT_HELP = \
     """
     The time in seconds that reflects how long the simulator will attempt to
     reconnect to the backend. 0 represents do not reconnect. -1 represents
-    retry forever. The default is set to 3000 seconds(5 minutes).
+    retry forever. The default is set to 300 seconds (5 minutes).
+    """
+_PING_INTERVAL_HELP = \
+    """
+    The time interval in seconds that reflects how often the client will
+    send keep-alive pings to the server. The ping-interval must be equal to 0
+    or greater than or equal to 1 and less than 240 seconds. The default is 0 which
+    indicates that the client will not send any pings.
     """
 # legacy help strings
 _TRAIN_BRAIN_HELP = "The name of the BRAIN to connect to for training."
@@ -160,11 +168,13 @@ class Config(object):
         self.predict = False
         self.brain_version = 0
         self._proxy = None
-        self._retry_timeout_seconds = 3000
+        self._retry_timeout_seconds = 300
+        self._ping_interval_seconds = 0.0
 
         self.verbose = False
         self.record_file = None
         self.record_enabled = False
+        self.file_paths = set()
         self._config = self._read_config()
         self.profile = profile
 
@@ -195,19 +205,20 @@ class Config(object):
 
     @property
     def proxy(self):
+        # shell-local environment vars get top precedence, falling back to
+        # OS-specific registry/configuration values
         if self._proxy is not None:
             return self._proxy
-
-        proxy = environ.get(_ALL_PROXY, None)
-
-        http_proxy = environ.get(_HTTP_PROXY, None)
+        proxy_dict = getproxies()
+        proxy = proxy_dict.get(_ALL_PROXY, None)
+        http_proxy = proxy_dict.get(_HTTP_PROXY, None)
         if http_proxy is not None:
             proxy = http_proxy
 
         if self.url is not None:
             uri = urlparse(self.url)
             if uri.scheme == 'https':
-                https_proxy = environ.get(_HTTPS_PROXY, None)
+                https_proxy = proxy_dict.get(_HTTPS_PROXY, None)
                 if https_proxy is not None:
                     proxy = https_proxy
 
@@ -237,6 +248,20 @@ class Config(object):
             raise ValueError(
                 'Retry timeout must be a positive integer, 0, or -1.')
         self._retry_timeout_seconds = value
+
+    @property
+    def ping_interval(self):
+        return self._ping_interval_seconds
+
+    @ping_interval.setter
+    def ping_interval(self, value):
+        value = float(value)
+        if value == 0 or (value >= 1 and value < 240):
+            self._ping_interval_seconds = value
+        else:
+            raise ValueError(
+                'Ping interval must be equal to 0 (No pings) or '
+                'greater than 1 second and less than 240 seconds.')
 
     def _parse_env(self):
         ''' parse out environment variables used in hosted containers '''
@@ -356,6 +381,8 @@ class Config(object):
                             help=_RECORD_HELP)
         parser.add_argument('--retry-timeout', type=int,
                             help=_RETRY_TIMEOUT_HELP)
+        parser.add_argument('--ping-interval', type=float,
+                            help=_PING_INTERVAL_HELP)
 
         args, remainder = parser.parse_known_args(argv[1:])
 
@@ -393,6 +420,9 @@ class Config(object):
 
         if args.retry_timeout is not None:
             self.retry_timeout = args.retry_timeout
+
+        if args.ping_interval is not None:
+            self.ping_interval = args.ping_interval
 
         brain_version = None
         if args.predict is not None:
@@ -436,6 +466,9 @@ class Config(object):
 
         config = RawConfigParser(allow_no_value=True)
         config.read(config_files)
+        for path in config_files:
+            if os.path.exists(path):
+                self.file_paths.add(path)
         return config
 
     def _set_profile(self, section):

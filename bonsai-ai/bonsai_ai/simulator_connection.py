@@ -105,7 +105,10 @@ class SimulatorConnection(object):
             req.headers['Authorization'] = self._brain.config.accesskey
             req.headers['User-Agent'] = self._brain._user_info
 
-            self._ws = yield websocket_connect(req)
+            self._ws = yield websocket_connect(
+                req,
+                ping_interval=self._brain.config.ping_interval,
+                ping_timeout=240)
         except Exception as e:
             raise gen.Return(repr(e))
         else:

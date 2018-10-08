@@ -42,6 +42,6 @@ def test_sim_connection_constructor(train_sim):
     assert(sim_connection._brain == train_sim.brain)
     assert(sim_connection._predict is train_sim.predict)
     assert(sim_connection._connection_attempts == 0)
-    assert(sim_connection._retry_timeout_seconds == 3000)
+    assert(sim_connection._retry_timeout_seconds == 300)
     assert(sim_connection._maximum_backoff_seconds == 60)
     assert(sim_connection._timeout is None)

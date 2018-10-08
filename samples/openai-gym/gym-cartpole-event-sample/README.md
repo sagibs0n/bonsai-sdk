@@ -12,7 +12,7 @@ If you're using the web interface, please follow the [quick start guide](http://
 ## LOCAL (CLI) GUIDE
 
 ### CLI INSTALLATION
-1. Install the Bonsai CLI by following our [detailed CLI installation guide](http://docs.bons.ai/guides/cli-guide.html).
+1. Install the Bonsai CLI by following our [detailed CLI installation guide](https://docs.bons.ai/guides/cli-install-guide.html)
 
 ### CREATE YOUR BRAIN
 1. Setup your BRAIN's local project folder.
@@ -26,13 +26,13 @@ If you're using the web interface, please follow the [quick start guide](http://
 2. Run this command to start training mode for your BRAIN.
        `bonsai train start`
 3. Connect the OpenAI Gym simulator for training.
-       `python cartpole_simulator.py --brain=<your_brain>
+       `python cartpole_simulator.py`
 4. When training has hit a sufficient accuracy for prediction, about 250 for at least 100 episodes, stop training your BRAIN.
        `bonsai train stop`
 
 ### GET PREDICTIONS
 1. Run the simulator using predictions from your BRAIN. You can now see AI playing the game!
-       `python cartpole_simulator.py --predict --brain=<your_brain>
+       `python cartpole_simulator.py --predict`
 
 
 ## Questions about Inkling?

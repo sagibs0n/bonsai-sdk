@@ -1,4 +1,4 @@
-bonsai-ai>=2.0.13
+bonsai-ai>=2.0.14
 bonsai-cli>=0.8.25
 bonsai-gym>=2.0.9
 scipy
