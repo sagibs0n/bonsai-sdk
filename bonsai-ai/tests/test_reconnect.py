@@ -1,6 +1,6 @@
 import time
 import pytest
-from bonsai_ai.exceptions import RetryTimeoutError
+from bonsai_ai.exceptions import RetryTimeoutError, BonsaiServerError
 
 
 def test_reconnect(flaky_train_sim, monkeypatch):
@@ -35,6 +35,16 @@ def test_reconnect_user_does_not_want_to_reconnect(flaky_train_sim):
             # Avoid infinite simulation loops and fail test
             assert False
         counter += 1
+
+
+def test_reconnect_sim_does_not_exist(train_sim):
+    train_sim._impl.name = "cartpole_simulatorX"
+    enter_loop = False
+    while train_sim.run():
+        enter_loop = True
+        break
+
+    assert not enter_loop
 
 
 def test_sim_connection_constructor(train_sim):

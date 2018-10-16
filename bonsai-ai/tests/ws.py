@@ -47,6 +47,7 @@ class BrainRequestHandler(web.RequestHandler):
         if endpoint == 'train':
             BRAIN_STATUS['state'] = "In Progress"
         elif endpoint == 'stop':
+            reset_count()
             BRAIN_STATUS['state'] = "Stopped"
         else:
             print("WS.PY: unsupported endpoint: {}".format(uri))

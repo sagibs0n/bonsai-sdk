@@ -17,10 +17,10 @@ from bonsai_ai.brain import IN_PROGRESS, STOPPED
 def test_brain(train_config):
     """ Tests that a brain is created without errors """
     # Patch and Mock out requests/responses
-    brain = Brain(train_config, 'SOMENAME')
+    brain = Brain(train_config, 'cartpole')
 
     assert brain.config == train_config
-    assert brain.name == 'SOMENAME'
+    assert brain.name == 'cartpole'
     assert brain.description is None
     assert brain.latest_version == 1
 
@@ -36,6 +36,18 @@ def test_brain_update(blank_brain, v2_get):
     assert blank_brain.state == STOPPED
     assert blank_brain.exists is True
     assert blank_brain.latest_version == 4
+
+
+@pytest.mark.xfail(strict=True)
+def test_sim_exists(train_config):
+    """
+    Brain.sim_exists should reflect state of mock backend.
+    This fails because requests and pytest don't play nice.
+    """
+    brain = Brain(train_config, 'cartpole')
+
+    assert brain.sim_exists('cartpole_simulator')
+    assert not brain.sim_exists('cartpole_simulatorX')
 
 
 def test_brain_predict_version():

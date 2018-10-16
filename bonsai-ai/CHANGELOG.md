@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.15
+- Bug fix in reconnect logic
+- Add `Brain.sim_exists`
+- Add guards for sim name existence/matching
+- Add threading on sim calls in run loop for Unix/Windows
+- Add configurable network timeout (websocket handshake)
+
 ## 2.0.14
 - Improved loading of proxy settings.
 - ping_interval parameters in Config

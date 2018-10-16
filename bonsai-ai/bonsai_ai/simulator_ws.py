@@ -1,6 +1,8 @@
 # Copyright (C) 2018 Bonsai, Inc.
 
 # tornado
+import platform
+from concurrent.futures import ThreadPoolExecutor
 from tornado import gen
 from tornado.websocket import WebSocketClosedError, StreamClosedError
 
@@ -25,6 +27,11 @@ from bonsai_ai.simulator_connection import SimulatorConnection
 log = Logger()
 
 
+def _use_threads():
+    if platform.system() == 'Darwin':
+        return False
+    return True
+
 class Simulator_WS(object):
     class SimStep(object):
         """
@@ -45,6 +52,8 @@ class Simulator_WS(object):
         self._sim = sim
         self._reset_simulator_ws()
         self._sim_connection = SimulatorConnection(brain, sim.predict)
+        if _use_threads():
+            self._executor = ThreadPoolExecutor(max_workers=1)
 
         # protobuf discriptor cache
         self._inkling = InklingMessageFactory()
@@ -386,7 +395,12 @@ class Simulator_WS(object):
         if isinstance(event, EpisodeStartEvent):
             log.event("Episode Start")
             try:
-                state = self._sim._on_episode_start(event.initial_properties)
+                if _use_threads():
+                    state = yield self._executor.submit(
+                        self._sim._on_episode_start, event.initial_properties)
+                else:
+                    state = self._sim._on_episode_start(
+                        event.initial_properties)
             except Exception as e:
                 raise EpisodeStartError(e)
 
@@ -397,8 +411,13 @@ class Simulator_WS(object):
             log.event("Simulate")
             try:
                 log.simulator("action: {}".format(event.action))
-                event.state, event.reward, event.terminal = \
-                    self._sim._on_simulate(event.action)
+                if _use_threads():
+                    event.state, event.reward, event.terminal = \
+                        yield self._executor.submit(
+                            self._sim._on_simulate, event.action)
+                else:
+                    event.state, event.reward, event.terminal = \
+                        self._sim._on_simulate(event.action)
             except Exception as e:
                 raise SimulateError(e)
 
@@ -407,13 +426,17 @@ class Simulator_WS(object):
         elif isinstance(event, EpisodeFinishEvent):
             log.event("Episode Finish")
             try:
-                self._sim._on_episode_finish()
+                if _use_threads():
+                    yield self._executor.submit(self._sim._on_episode_finish)
+                else:
+                    self._sim._on_episode_finish()
             except Exception as e:
                 raise EpisodeFinishError(e)
             log.simulator_ws('\tF')
         elif isinstance(event, FinishedEvent):
             log.event("Finished")
             self._sim_connection.close()
+            self._executor.shutdown()
             raise gen.Return(False)
         elif isinstance(event, UnknownEvent):
             log.event("No Operation")

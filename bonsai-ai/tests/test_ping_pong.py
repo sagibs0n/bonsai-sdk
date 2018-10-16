@@ -1,3 +1,5 @@
+import time
+
 def test_train_sim(train_sim, capsys):
     """ 
     Tests that pings are received by our mock server.
@@ -8,7 +10,8 @@ def test_train_sim(train_sim, capsys):
     train_sim.brain.config.ping_interval = 1.0
     counter = 0
     while train_sim.run():
-        if counter == 2000:
+        time.sleep(.1)
+        if counter == 20:
             break
         counter += 1
     out, err = capsys.readouterr()

@@ -7,8 +7,6 @@ from bonsai_ai.exceptions import BonsaiServerError, RetryTimeoutError
 from bonsai_ai.logger import Logger
 
 
-_CONNECT_TIMEOUT_SECS = 60
-
 log = Logger()
 
 
@@ -26,6 +24,7 @@ class SimulatorConnection(object):
         self._predict = predict
         self._ws = None
         self._retry_timeout_seconds = brain.config.retry_timeout
+        self._network_timeout_seconds = brain.config.network_timeout
         self._connection_attempts = 0
         self._base_multiplier_milliseconds = 50
         self._maximum_backoff_seconds = 60
@@ -50,28 +49,11 @@ class SimulatorConnection(object):
         reasons can be mapped to a set of close codes that allow us to safely
         say we should not attempt to reconnect the simulator
         """
-        self._invalid_reconnect_codes = {1001}
-        self._invalid_reconnect_reasons = {
-            'Brain {}/{}/{} has already finished training'.format(
-                self._brain.config.username,
-                self._brain.name,
-                self._brain.version
-            ),
-            'Brain {}/{} does not exist'.format(
-                self._brain.config.username,
-                self._brain.name
-            ),
-            'BRAIN {}/{}/{} does not exist'.format(
-                self._brain.config.username,
-                self._brain.name,
-                self._brain.version
-            ),
-            'No Brain version exists for Brain {}/{}. '
-            ' Did you start training before connecting'
-            ' simulator?'.format(
-                self._brain.config.username,
-                self._brain.name
-            ),
+        self._fatal_codes = {1001}
+        self._fatal = {
+            'already finished training',
+            'does not exist',
+            'No Brain version exists for Brain',
             'Cannot predict; currently training'
         }
 
@@ -100,13 +82,14 @@ class SimulatorConnection(object):
             log.info('trying to connect: {}'.format(url))
             req = HTTPRequest(
                 url,
-                connect_timeout=_CONNECT_TIMEOUT_SECS,
-                request_timeout=_CONNECT_TIMEOUT_SECS)
+                connect_timeout=self._network_timeout_seconds,
+                request_timeout=self._network_timeout_seconds)
             req.headers['Authorization'] = self._brain.config.accesskey
             req.headers['User-Agent'] = self._brain._user_info
 
             self._ws = yield websocket_connect(
                 req,
+                #connect_timeout=self._network_timeout_seconds,     this breaks the pytest server at the moment.
                 ping_interval=self._brain.config.ping_interval,
                 ping_timeout=240)
         except Exception as e:
@@ -153,7 +136,10 @@ class SimulatorConnection(object):
             self._ws = None
 
     def handle_disconnect(self, message=None):
-        if message:
+        if message and not self._retry_timeout_seconds:
+            raise BonsaiServerError(
+                'Error while connecting to websocket: {}'.format(message))
+        elif message:
             log.info('Error while connecting to websocket: {}'.format(message))
 
         if self._ws:
@@ -161,9 +147,9 @@ class SimulatorConnection(object):
                 'ws_close_code: {}, ws_close_reason: {}.'.format(
                     self._ws.close_code, self._ws.close_reason))
 
-            if (self._ws.close_code in self._invalid_reconnect_codes or
-                    self._ws.close_reason in self._invalid_reconnect_reasons or
-                    not self._retry_timeout_seconds):
+            if self._ws.close_code in self._fatal_codes or \
+               any(rsn in self._ws.close_reason for rsn in self._fatal) or\
+               not self._retry_timeout_seconds:
                 raise BonsaiServerError(
                     'Websocket connection closed. Code: {}, Reason: {}'.format(
                         self._ws.close_code, self._ws.close_reason))

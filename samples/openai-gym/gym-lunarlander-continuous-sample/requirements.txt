@@ -1,4 +1,4 @@
-bonsai-ai>=2.0.14
+bonsai-ai>=2.0.15
 bonsai-cli>=0.8.25
 bonsai-gym>=2.0.9
 box2d-py==2.3.4   # Note: box2d-kengz 2.3.3 has issues on Linux https://github.com/openai/gym/issues/1096. We will keep using box-2d 2.3.4 till the fix is released.

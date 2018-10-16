@@ -4,7 +4,6 @@
 # pylint: disable=too-many-function-args
 from bonsai_ai.event import SimulateEvent, EpisodeStartEvent, \
     EpisodeFinishEvent, FinishedEvent, UnknownEvent
-from tornado import gen
 
 
 def test_event_pump(train_sim):

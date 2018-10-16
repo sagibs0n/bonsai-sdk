@@ -105,6 +105,25 @@ def _request_status(url, headers, proxy_dict):
         response.raise_for_status()
 
 
+def _request_sims(url, headers, proxy_dict):
+    response = requests.get(
+        url=url + "/sims", headers=headers, proxies=proxy_dict
+    )
+    _log_response(response)
+    if response.ok:
+        """ Example:
+        {
+            u'simulator_name': {
+                u'inactive': [],
+                u'active': []
+            }
+        }
+        """
+        return response.json()
+    else:
+        response.raise_for_status()
+
+
 class Brain(object):
     """
     Manages communication with the BRAIN on the server.
@@ -144,6 +163,7 @@ class Brain(object):
         self._status = None
         self._info = None
         self._state = None
+        self._sims = None
         self.latest_version = None
         self._user_info = self._get_user_info()
 
@@ -246,6 +266,13 @@ class Brain(object):
                 self._request_header(),
                 self._proxy_header()
                 )
+
+            log.brain('Getting {} sims...'.format(self.name))
+            self._sims = _request_sims(
+                self._brain_url(),
+                self._request_header(),
+                self._proxy_header()
+            )
             self._state = self._status['state']
 
         except Exception as e:
@@ -267,6 +294,12 @@ class Brain(object):
             return self._state is not None and self._version_exists()
 
         return self._state is not None
+
+    def sim_exists(self, sim_name):
+        self.update()
+        if not self._sims:
+            return False
+        return sim_name in self._sims
 
     def _version_exists(self):
         for v in self._info['versions']:

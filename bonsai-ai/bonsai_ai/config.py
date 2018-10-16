@@ -97,6 +97,11 @@ _PING_INTERVAL_HELP = \
     or greater than or equal to 1 and less than 240 seconds. The default is 0 which
     indicates that the client will not send any pings.
     """
+_NETWORK_TIMEOUT_HELP = \
+    """
+    Time in seconds to wait before retrying network connections.
+    Must be greater than zero.
+    """
 # legacy help strings
 _TRAIN_BRAIN_HELP = "The name of the BRAIN to connect to for training."
 _PREDICT_BRAIN_HELP = \
@@ -170,6 +175,7 @@ class Config(object):
         self._proxy = None
         self._retry_timeout_seconds = 300
         self._ping_interval_seconds = 0.0
+        self._network_timeout_seconds = 60
 
         self.verbose = False
         self.record_file = None
@@ -201,6 +207,8 @@ class Config(object):
             'brain_version: {self.brain_version!r}, ' \
             'proxy: {self.proxy!r}, ' \
             'retry_timeout: {self.retry_timeout!r}, ' \
+            'ping_interval: {self.ping_interval!r}, ' \
+            'network_timeout: {self.network_timeout!r}, ' \
             '}}'.format(self=self)
 
     @property
@@ -262,6 +270,18 @@ class Config(object):
             raise ValueError(
                 'Ping interval must be equal to 0 (No pings) or '
                 'greater than 1 second and less than 240 seconds.')
+
+    @property
+    def network_timeout(self):
+        return self._network_timeout_seconds
+
+    @network_timeout.setter
+    def network_timeout(self, value):
+        value = int(value)
+        if value < 1:
+            raise ValueError(
+                'Network timeout must be a positive integer.')
+        self._network_timeout_seconds = value
 
     def _parse_env(self):
         ''' parse out environment variables used in hosted containers '''
@@ -383,6 +403,8 @@ class Config(object):
                             help=_RETRY_TIMEOUT_HELP)
         parser.add_argument('--ping-interval', type=float,
                             help=_PING_INTERVAL_HELP)
+        parser.add_argument('--network-timeout', type=int,
+                            help=_NETWORK_TIMEOUT_HELP)
 
         args, remainder = parser.parse_known_args(argv[1:])
 
@@ -423,6 +445,9 @@ class Config(object):
 
         if args.ping_interval is not None:
             self.ping_interval = args.ping_interval
+
+        if args.network_timeout is not None:
+            self.network_timeout = args.network_timeout
 
         brain_version = None
         if args.predict is not None:
