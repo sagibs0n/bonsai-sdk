@@ -165,7 +165,7 @@ class BonsaiWS(websocket.WebSocketHandler):
         if self._FLAKY and \
            self._count > self._fail_point and \
            self._count < self._fail_point + self._fail_duration:
-            self.close(code=1008, reason="Policy violation.")
+            self.close(code=1008, reason=None)
             return
         elif BRAIN_STATUS['state'] == "Stopped":
             self.close(code=1001, reason="Brain no longer training")

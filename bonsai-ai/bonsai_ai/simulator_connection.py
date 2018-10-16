@@ -89,7 +89,6 @@ class SimulatorConnection(object):
 
             self._ws = yield websocket_connect(
                 req,
-                #connect_timeout=self._network_timeout_seconds,     this breaks the pytest server at the moment.
                 ping_interval=self._brain.config.ping_interval,
                 ping_timeout=240)
         except Exception as e:
@@ -148,7 +147,8 @@ class SimulatorConnection(object):
                     self._ws.close_code, self._ws.close_reason))
 
             if self._ws.close_code in self._fatal_codes or \
-               any(rsn in self._ws.close_reason for rsn in self._fatal) or\
+               (self._ws.close_reason is not None and
+                any(rsn in self._ws.close_reason for rsn in self._fatal)) or \
                not self._retry_timeout_seconds:
                 raise BonsaiServerError(
                     'Websocket connection closed. Code: {}, Reason: {}'.format(

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.16
+- Hotfix: `None` check in disconnect handler
+
 ## 2.0.15
 - Bug fix in reconnect logic
 - Add `Brain.sim_exists`
