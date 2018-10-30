@@ -1,9 +1,9 @@
 {
     "files": [
+        "*.py",
         "README.md",
-        "requirements.txt",
         "cartpole.ink",
-        "*.py"
+        "requirements.txt"
     ],
     "training": {
         "command": "python bridge.py",

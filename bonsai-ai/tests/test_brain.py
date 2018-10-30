@@ -5,11 +5,6 @@
 import pytest
 import os
 
-try:
-    from unittest.mock import Mock, patch, ANY
-except ImportError:
-    from mock import Mock, patch, ANY
-
 from bonsai_ai import Brain, Config
 from bonsai_ai.brain import IN_PROGRESS, STOPPED
 
@@ -23,6 +18,7 @@ def test_brain(train_config):
     assert brain.name == 'cartpole'
     assert brain.description is None
     assert brain.latest_version == 1
+    assert brain._timeout == 60
 
 
 def test_brain_update(blank_brain, v2_get):
@@ -102,6 +98,11 @@ def test_brain_name_is_not_none(train_config):
     brain = Brain(train_config)
     assert brain.name is not None
 
+
+def test_brain_timeout():
+    config = Config([__name__, '--network-timeout=1'])
+    brain = Brain(config)
+    assert brain._timeout == 1
 
 if __name__ == '__main__':
     pytest.main([__file__])

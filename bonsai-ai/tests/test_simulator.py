@@ -63,7 +63,7 @@ def test_sim_predict_flag(predict_sim):
     assert predict_sim.predict is True
 
 
-@pytest.mark.xfail(raises=(TypeError))
+@pytest.mark.xfail(raises=(TypeError), strict=True)
 def test_brain_create_with_invalid_args():
     sim = CartSim()
 

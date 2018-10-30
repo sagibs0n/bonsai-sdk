@@ -91,6 +91,8 @@ class SimulatorConnection(object):
                 req,
                 ping_interval=self._brain.config.ping_interval,
                 ping_timeout=240)
+        except HTTPError as e:
+            raise gen.Return(e)
         except Exception as e:
             raise gen.Return(repr(e))
         else:
@@ -135,11 +137,8 @@ class SimulatorConnection(object):
             self._ws = None
 
     def handle_disconnect(self, message=None):
-        if message and not self._retry_timeout_seconds:
-            raise BonsaiServerError(
-                'Error while connecting to websocket: {}'.format(message))
-        elif message:
-            log.info('Error while connecting to websocket: {}'.format(message))
+        if message:
+            self._handle_message(message)
 
         if self._ws:
             log.info(
@@ -155,3 +154,18 @@ class SimulatorConnection(object):
                         self._ws.close_code, self._ws.close_reason))
 
         self.close()
+
+    def _handle_message(self, message):
+        """ Handles error messages returned from initial connection attempt """
+        if isinstance(message, HTTPError):
+            if message.code == 401:
+                raise BonsaiServerError(
+                    'Error while connecting to websocket: {}. '
+                    'Please run \'bonsai configure\' again.'.format(message))
+            if message.code == 404:
+                raise BonsaiServerError(
+                    'Error while connecting to websocket: {}'.format(message))
+        if not self._retry_timeout_seconds:
+            raise BonsaiServerError(
+                'Error while connecting to websocket: {}'.format(message))
+        log.info('Error while connecting to websocket: {}'.format(message))

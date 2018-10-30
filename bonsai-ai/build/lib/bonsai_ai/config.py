@@ -94,8 +94,8 @@ _PING_INTERVAL_HELP = \
     """
     The time interval in seconds that reflects how often the client will
     send keep-alive pings to the server. The ping-interval must be equal to 0
-    or greater than or equal to 1 and less than 240 seconds. The default is 0 which
-    indicates that the client will not send any pings.
+    or greater than or equal to 1 and less than 240 seconds with 0 indicating
+    that the client should not PING. The default setting is 15s.
     """
 _NETWORK_TIMEOUT_HELP = \
     """
@@ -174,7 +174,7 @@ class Config(object):
         self.brain_version = 0
         self._proxy = None
         self._retry_timeout_seconds = 300
-        self._ping_interval_seconds = 0.0
+        self._ping_interval_seconds = 15.0
         self._network_timeout_seconds = 60
 
         self.verbose = False
@@ -548,8 +548,6 @@ class Config(object):
         for key, value in kwargs.items():
             if key.lower() == _PROFILE.lower():
                 self._set_profile(value)
-            elif key.lower() == _USE_COLOR.lower():
-                self._config.set(self.profile, key, value)
             else:
                 self._config.set(self.profile, key, str(value))
         self._write_global_config()

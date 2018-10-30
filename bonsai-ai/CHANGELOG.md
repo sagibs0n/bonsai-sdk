@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.17
+- #7587 Turn PINGs on by default in bonsai-ai
+- #7247: HTTP 401 and 404 should not initiate retries
+- #7289: Add network timeout to brain http requests
+- #7359: Fix a predictor test
+- #7347: write "safe" accepted for `use_color` in config
+- #7283: Add strict to tests marked with xfail
+
 ## 2.0.16
 - Hotfix: `None` check in disconnect handler
 

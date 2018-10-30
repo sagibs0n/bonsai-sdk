@@ -38,9 +38,10 @@ def _log_response(response):
               response.status_code, dump))
 
 
-def _request_info(url, headers, proxy_dict):
+def _request_info(url, headers, proxy_dict, timeout):
     response = requests.get(
-        url=url, headers=headers, proxies=proxy_dict
+        url=url, headers=headers,
+        proxies=proxy_dict, timeout=timeout
     )
     _log_response(response)
     if response.ok:
@@ -67,9 +68,10 @@ def _request_info(url, headers, proxy_dict):
         response.raise_for_status()
 
 
-def _request_status(url, headers, proxy_dict):
+def _request_status(url, headers, proxy_dict, timeout):
     response = requests.get(
-        url=url + "/status", headers=headers, proxies=proxy_dict
+        url=url + "/status", headers=headers,
+        proxies=proxy_dict, timeout=timeout
     )
     _log_response(response)
     if response.ok:
@@ -105,9 +107,10 @@ def _request_status(url, headers, proxy_dict):
         response.raise_for_status()
 
 
-def _request_sims(url, headers, proxy_dict):
+def _request_sims(url, headers, proxy_dict, timeout):
     response = requests.get(
-        url=url + "/sims", headers=headers, proxies=proxy_dict
+        url=url + "/sims", headers=headers,
+        proxies=proxy_dict, timeout=timeout
     )
     _log_response(response)
     if response.ok:
@@ -158,6 +161,7 @@ class Brain(object):
             name:   The name of the BRAIN to connect to.
         """
         self.config = config
+        self._timeout = self.config.network_timeout
         self.description = None
         self.name = name if name else self.config.brain
         self._status = None
@@ -252,7 +256,8 @@ class Brain(object):
             self._info = _request_info(
                 self._brain_url(),
                 self._request_header(),
-                self._proxy_header()
+                self._proxy_header(),
+                self._timeout
                 )
 
             if self._info['versions']:
@@ -264,17 +269,21 @@ class Brain(object):
             self._status = _request_status(
                 self._brain_url(),
                 self._request_header(),
-                self._proxy_header()
+                self._proxy_header(),
+                self._timeout
                 )
 
             log.brain('Getting {} sims...'.format(self.name))
             self._sims = _request_sims(
                 self._brain_url(),
                 self._request_header(),
-                self._proxy_header()
+                self._proxy_header(),
+                self._timeout
             )
             self._state = self._status['state']
 
+        except requests.exceptions.Timeout as e:
+            log.error('Request timeout in bonsai_ai.Brain: ' + repr(e))
         except Exception as e:
             print('WARNING: ignoring failed update in Brain init.')
 

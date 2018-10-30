@@ -5,6 +5,6 @@
     ],
     "training": {
         "command": "python tictactoe_simulator.py",
-        "simulator": "bonsai.python"
+        "simulator": "bonsai.ai"
     }
 }

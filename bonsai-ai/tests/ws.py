@@ -70,6 +70,7 @@ class BonsaiWS(websocket.WebSocketHandler):
     _PROTOCOL_FILE = "proto_bin/cartpole_wire.json"
     _PREDICT = False
     _FLAKY = False
+    _UNAUTHORIZED = False
     _fail_point = 10
     _fail_duration = 8
 
@@ -137,6 +138,9 @@ class BonsaiWS(websocket.WebSocketHandler):
 
     @count_me
     def get(self, *args, **kwargs):
+        if self._UNAUTHORIZED:
+            self.set_status(401)
+            return
         if self._FLAKY and \
            self._count > self._fail_point and \
            self._count < self._fail_point + self._fail_duration:
@@ -221,6 +225,11 @@ def set_predict_mode(predict):
 
 def set_flaky_mode(flaky):
     BonsaiWS._FLAKY = flaky
+
+
+def set_unauthorized_mode(unauthorized):
+    """ Returns 401 error on get requests when set to True """
+    BonsaiWS._UNAUTHORIZED = unauthorized
 
 
 def set_fail_duration(duration):

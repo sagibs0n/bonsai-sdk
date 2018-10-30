@@ -224,17 +224,17 @@ def test_argv_retry_timeout():
     assert config.retry_timeout == 10
 
 
-@pytest.mark.xfail(raises=ValueError)
+@pytest.mark.xfail(raises=ValueError, strict=True)
 def test_invalid_retry_timeout_throws_error():
     config = Config([
         __name__,
-        '-retry-timeout', '-1000'
+        '--retry-timeout', '-1000'
     ])
 
 
 def test_default_ping_interval():
     config = Config()
-    assert config.ping_interval == 0
+    assert config.ping_interval == 15
 
 
 def test_argv_ping_interval():
@@ -262,7 +262,7 @@ def test_invalid_ping_interval_throws_error():
         config.ping_interval = 250
 
 
-@pytest.mark.xfail(raises=SystemExit)
+@pytest.mark.xfail(raises=SystemExit, strict=True)
 def test_invalid_retry_timeout_argv_throws_error():
     """ Incorrect values in argparse raise a SystemExit """
     config = Config([

@@ -17,7 +17,7 @@ except ImportError:
 
 from bonsai_ai import Simulator, Brain, Config, Luminance, Predictor
 from ws import open_bonsai_ws, close_bonsai_ws, set_predict_mode, \
-    set_flaky_mode, reset_count, set_fail_duration
+    set_flaky_mode, set_unauthorized_mode
 
 
 class CartSim(Simulator):
@@ -223,21 +223,7 @@ def record_csv_config_predict():
 @pytest.fixture
 def train_config():
     set_flaky_mode(False)
-    return Config([
-        __name__,
-        '--accesskey=VALUE',
-        '--username=alice',
-        '--url=http://localhost:8889',
-        '--brain=cartpole',
-        '--proxy=VALUE',
-    ])
-
-
-@pytest.fixture
-def flaky_train_config():
-    set_flaky_mode(True)
-    set_fail_duration(15)
-    reset_count()
+    set_unauthorized_mode(False)
     return Config([
         __name__,
         '--accesskey=VALUE',
@@ -301,14 +287,6 @@ def record_csv_predict(record_csv_config_predict):
 @pytest.fixture
 def train_sim(train_config):
     brain = Brain(train_config)
-    sim = CartSim(brain, 'cartpole_simulator')
-    sim._ioloop = IOLoop.current()
-    return sim
-
-
-@pytest.fixture
-def flaky_train_sim(flaky_train_config):
-    brain = Brain(flaky_train_config)
     sim = CartSim(brain, 'cartpole_simulator')
     sim._ioloop = IOLoop.current()
     return sim
