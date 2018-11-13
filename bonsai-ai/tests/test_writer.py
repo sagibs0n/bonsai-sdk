@@ -4,6 +4,7 @@ import csv
 import json
 import os
 import io
+import shutil
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
 
 
@@ -26,6 +27,7 @@ def test_json_writing(record_json_sim):
             assert l['sim_id'] == 270022238
         assert l['bar.foo'] == 23
 
+    record_json_sim.writer.close()
     os.remove(record_json_sim.brain.config.record_file)
 
 
@@ -62,12 +64,13 @@ def test_csv_writing(record_csv_sim):
             assert '23' in row
             assert custom_idx == row.index('23')
 
+    record_csv_sim.writer.close()
     os.remove(record_csv_sim.brain.config.record_file)
 
 
 def test_file_change(record_csv_sim, tmpdir):
     if os.path.isdir("sub"):
-        os.rmdir("sub")
+        shutil.rmtree("sub")
     os.mkdir("sub")
     while record_csv_sim._impl._prev_message_type != ServerToSimulator.RESET:
         if record_csv_sim._impl._prev_message_type == \
@@ -123,13 +126,14 @@ def test_file_change(record_csv_sim, tmpdir):
             assert '23' in row
             assert custom_idx == row.index('23')
 
+    record_csv_sim.writer.close()
     os.remove("./sub/bazqux.csv")
     os.rmdir("sub")
 
 
 def test_predict_mode_record(record_csv_predict, tmpdir):
     if os.path.isdir("sub"):
-        os.rmdir("sub")
+        shutil.rmtree("sub")
     os.mkdir("sub")
     rcp = record_csv_predict
     sim_steps = 100
@@ -150,5 +154,6 @@ def test_predict_mode_record(record_csv_predict, tmpdir):
 
         assert 'sim_id' in header
 
+    record_csv_predict.writer.close()
     os.remove(rcp.brain.config.record_file)
     os.rmdir("sub")

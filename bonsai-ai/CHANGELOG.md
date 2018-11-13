@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.18
+- #7653: Braind service closes websocket with 1001, 3000-3099 or 4000-4099 when the Sim should not reconnect.
+- #7746: Do not reconnect on ws close code 1000-1099. This is a permanent change.
+- #7666: Fix bonsai-ai unit tests for Windows
+- #6694: Remove warning spam in config
+- #7650: Accept websocket close codes 4000-4099 to mean Do Not Reconnect
+- #7648: ThreadPoolExecutor's shutdown method should not be called in OSX
+
 ## 2.0.17
 - #7587 Turn PINGs on by default in bonsai-ai
 - #7247: HTTP 401 and 404 should not initiate retries

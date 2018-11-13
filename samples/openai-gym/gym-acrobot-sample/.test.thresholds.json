@@ -1,8 +1,8 @@
 {
     "executable": "acrobot_simulator.py",
     "prediction": {
-        "episodes": 75,
-        "mean": -100
+        "episodes": 10,
+        "mean": -300
     },
     "training": {
         "concepts": [

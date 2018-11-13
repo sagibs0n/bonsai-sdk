@@ -49,6 +49,8 @@ class SimulatorConnection(object):
         reasons can be mapped to a set of close codes that allow us to safely
         say we should not attempt to reconnect the simulator
         """
+
+        # TODO: Bug 7652 says to remove these once 7647 is all fixed.
         self._fatal_codes = {1001}
         self._fatal = {
             'already finished training',
@@ -136,6 +138,52 @@ class SimulatorConnection(object):
             yield self._ws.close()
             self._ws = None
 
+    def _websocket_should_not_reconnect(self):
+        """
+        If the websocket's close code is in [4000, 4100),
+        that means it was closed for a 'permanent' error
+        (e.g., brain is not in the correct state).
+        If there is a permanent error, or the retry timeout
+        is 0, then don't reconnect.
+        :return: True: don't reconnect; False: do reconnect.
+        """
+
+        # Code 1001 indicates normal, correct termination.
+        if self._ws.close_code == 1001:
+            return True
+
+        # So do these codes. We have to work around the older
+        # codes and c++ libraries, so we cannot use 1002-2999
+        # until the server stops sending them, and the lib
+        # will accept them.
+        if (self._ws.close_code is not None and
+                3000 <= self._ws.close_code <= 3099):
+            return True
+
+        # Codes 40xx indicate permanent errors: There is
+        # something wrong that will not be fixed by trying
+        # again. For example, Brain is not training, or
+        # Simulator ticket is incorrect.
+        if (self._ws.close_code is not None and
+                4000 <= self._ws.close_code <= 4099):
+            return True
+
+        if not self._retry_timeout_seconds:
+            return True
+
+        # These tests will become deprecated by 7647.
+        # TODO: Bug 7652 says to remove these once 7647 is all fixed.
+        if self._ws.close_code in self._fatal_codes:
+            return True
+
+        if (
+                self._ws.close_reason is not None and
+                any(rsn in self._ws.close_reason for rsn in self._fatal)
+           ):
+            return True
+
+        return False
+
     def handle_disconnect(self, message=None):
         if message:
             self._handle_message(message)
@@ -145,10 +193,7 @@ class SimulatorConnection(object):
                 'ws_close_code: {}, ws_close_reason: {}.'.format(
                     self._ws.close_code, self._ws.close_reason))
 
-            if self._ws.close_code in self._fatal_codes or \
-               (self._ws.close_reason is not None and
-                any(rsn in self._ws.close_reason for rsn in self._fatal)) or \
-               not self._retry_timeout_seconds:
+            if self._websocket_should_not_reconnect():
                 raise BonsaiServerError(
                     'Websocket connection closed. Code: {}, Reason: {}'.format(
                         self._ws.close_code, self._ws.close_reason))

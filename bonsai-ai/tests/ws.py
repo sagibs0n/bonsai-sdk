@@ -172,12 +172,19 @@ class BonsaiWS(websocket.WebSocketHandler):
             self.close(code=1008, reason=None)
             return
         elif BRAIN_STATUS['state'] == "Stopped":
-            self.close(code=1001, reason="Brain no longer training")
+            self.close(
+                # code 1001 means: brain has finished training
+                code=1001,
+                reason="Brain no longer training"
+            )
             return
         elif (from_sim.message_type == SimulatorToServer.REGISTER and
               sim_name not in SIMS.keys()):
-            self.close(code=1008,
-                       reason="Simulator {} does not exist.".format(sim_name))
+            self.close(
+                # code 4043 means: simulator does not exist
+                code=4043,
+                reason="Simulator {} does not exist.".format(sim_name)
+            )
             return
 
         # dict->json->Message->binary

@@ -32,7 +32,7 @@ class _RateCounter(object):
         """
         self.count += 1
         delta = (time() - self.start)
-        if delta is not 0:
+        if delta != 0:
             average = self.count / delta
             DECAY_RATE = 0.9
             self.rate = average * DECAY_RATE + self.rate * (1.0 - DECAY_RATE)

@@ -181,7 +181,8 @@ class Config(object):
         self.record_file = None
         self.record_enabled = False
         self.file_paths = set()
-        self._config = self._read_config()
+        self._config_parser = RawConfigParser(allow_no_value=True)
+        self._read_config()
         self.profile = profile
 
         self._parse_env()
@@ -292,21 +293,20 @@ class Config(object):
 
     def _parse_config(self, profile):
         ''' parse both the '~/.bonsai' and './.bonsai' config files. '''
-        config_parser = self._read_config()
 
         # read the values
         def assign_key(key):
-            if config_parser.has_option(section, key):
+            if self._config_parser.has_option(section, key):
                 if key.lower() == _USE_COLOR.lower():
-                    self.__dict__[key] = config_parser.getboolean(section, key)
+                    self.__dict__[key] = self._config_parser.getboolean(section, key)
                 else:
-                    self.__dict__[key] = config_parser.get(section, key)
+                    self.__dict__[key] = self._config_parser.get(section, key)
 
         # get the profile
         section = _DEFAULT
         if profile is None:
-            if config_parser.has_option(_DEFAULT, _PROFILE):
-                section = config_parser.get(_DEFAULT, _PROFILE)
+            if self._config_parser.has_option(_DEFAULT, _PROFILE):
+                section = self._config_parser.get(_DEFAULT, _PROFILE)
                 self.profile = section
         else:
             section = profile
@@ -466,10 +466,6 @@ class Config(object):
                     'positive integer or "latest".')
             self.brain_version = brain_version
 
-    def _make_section(self, key):
-        if (not self._config.has_section(key) and key != _DEFAULT):
-            self._config.add_section(key)
-
     def _config_files(self):
         return [join(expanduser('~'), _DOT_BONSAI), join('.', _DOT_BONSAI)]
 
@@ -483,31 +479,31 @@ class Config(object):
                 found = True
                 break
         if not found:
-            # don't throw a runtime error, we may want an uninitialized
-            # config.
-            print('WARNING: Unable to find bonsai config file at: ' +
-                  str(config_files) +
-                  '\nPlease run `bonsai configure`.')
+            # Write empty .bonsai to disk if no file is found
+            self._write_dot_bonsai()
 
-        config = RawConfigParser(allow_no_value=True)
-        config.read(config_files)
+        self._config_parser.read(config_files)
         for path in config_files:
             if os.path.exists(path):
                 self.file_paths.add(path)
-        return config
 
     def _set_profile(self, section):
-        self._make_section(section)
+        # Create section if it does not exist
+        if not self._config_parser.has_section(section) and section != _DEFAULT:
+            self._config_parser.add_section(section)
+
+        # Set profile in class and config
         self.profile = section
         if section == _DEFAULT:
-            self._config.set(_DEFAULT, _PROFILE, 'DEFAULT')
+            self._config_parser.set(_DEFAULT, _PROFILE, 'DEFAULT')
         else:
-            self._config.set(_DEFAULT, _PROFILE, str(section))
+            self._config_parser.set(_DEFAULT, _PROFILE, str(section))
 
-    def _write_global_config(self):
+    def _write_dot_bonsai(self):
+        """ Writes to .bonsai in users home directory """
         config_path = join(expanduser('~'), _DOT_BONSAI)
         with open(config_path, 'w') as f:
-            self._config.write(f)
+            self._config_parser.write(f)
 
     def _websocket_url(self):
         """ Converts api url to websocket url """
@@ -527,28 +523,31 @@ class Config(object):
         """Checks the configuration to see if section exists."""
         if section == _DEFAULT:
             return True
-        return self._config.has_section(section)
+        return self._config_parser.has_section(section)
 
     def _section_list(self):
         """ Returns a list of sections in config """
-        return self._config.sections()
+        return self._config_parser.sections()
 
     def _section_items(self, section):
         """ Returns a dictionary of items in a section """
-        return self._config.items(section)
+        return self._config_parser.items(section)
 
     def _defaults(self):
         """ Returns an ordered dict of items in the DEFAULT section """
-        return self._config.defaults()
+        return self._config_parser.defaults()
 
     def _update(self, **kwargs):
-        """Updates the configuration with the Key/value pairs in kwargs."""
+        """
+        Updates the configuration with the Key/value pairs in kwargs and
+        writes to the .bonsai file in the users home directory.
+        """
         if not kwargs:
             return
         for key, value in kwargs.items():
             if key.lower() == _PROFILE.lower():
                 self._set_profile(value)
             else:
-                self._config.set(self.profile, key, str(value))
-        self._write_global_config()
+                self._config_parser.set(self.profile, key, str(value))
+        self._write_dot_bonsai()
         self._parse_config(self.profile)

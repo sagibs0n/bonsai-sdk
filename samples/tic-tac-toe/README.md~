@@ -1,0 +1,4 @@
+# Tic-Tac-Toe
+A simple implementation of the classic game Tic-Tac-Toe, with a "computer" agent and a "player" agent. The computer agent makes deterministically optimal moves on each turn, whereas the player's moves are delivered by the Bonsai Platform.
+
+At first, the 

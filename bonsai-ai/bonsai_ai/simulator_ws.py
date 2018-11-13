@@ -436,7 +436,8 @@ class Simulator_WS(object):
         elif isinstance(event, FinishedEvent):
             log.event("Finished")
             self._sim_connection.close()
-            self._executor.shutdown()
+            if _use_threads():
+                self._executor.shutdown()
             raise gen.Return(False)
         elif isinstance(event, UnknownEvent):
             log.event("No Operation")
