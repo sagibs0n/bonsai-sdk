@@ -232,34 +232,34 @@ def test_invalid_retry_timeout_throws_error():
     ])
 
 
-def test_default_ping_interval():
+def test_default_pong_interval():
     config = Config()
-    assert config.ping_interval == 15
+    assert config.pong_interval == 15
 
 
-def test_argv_ping_interval():
+def test_argv_pong_interval():
     config = Config([
         __name__,
-        '--ping-interval', '10'
+        '--pong-interval', '10'
     ])
-    assert config.ping_interval == 10
+    assert config.pong_interval == 10
 
 
-def test_valid_ping_intervals():
+def test_valid_pong_intervals():
     config = Config()
-    config.ping_interval = 1
-    config.ping_interval = 0
-    config.ping_interval = 239
+    config.pong_interval = 1
+    config.pong_interval = 0
+    config.pong_interval = 239
 
 
-def test_invalid_ping_interval_throws_error():
+def test_invalid_pong_interval_throws_error():
     config = Config()
     with pytest.raises(ValueError):
-        config.ping_interval = -1
+        config.pong_interval = -1
     with pytest.raises(ValueError):
-        config.ping_interval = 0.1
+        config.pong_interval = 0.1
     with pytest.raises(ValueError):
-        config.ping_interval = 250
+        config.pong_interval = 250
 
 
 @pytest.mark.xfail(raises=SystemExit, strict=True)
@@ -267,8 +267,22 @@ def test_invalid_retry_timeout_argv_throws_error():
     """ Incorrect values in argparse raise a SystemExit """
     config = Config([
         __name__,
-        '--ping-interval', 'foo'
+        '--pong-interval', 'foo'
     ])
+
+
+def test_argv_accesskey():
+    config = Config([
+        __name__,
+        '--access-key', '01001'
+    ])
+    assert config.accesskey == '01001'
+
+    config = Config([
+        __name__,
+        '--accesskey', '22222'
+    ])
+    assert config.accesskey == '22222'
 
 if __name__ == '__main__':
     pytest.main([__file__])

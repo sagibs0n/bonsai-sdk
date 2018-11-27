@@ -1,6 +1,8 @@
 import time
 from random import uniform
+from threading import Lock, Thread, Event
 from tornado import gen
+from tornado.ioloop import IOLoop
 from tornado.websocket import websocket_connect
 from tornado.httpclient import HTTPRequest, HTTPError
 from bonsai_ai.exceptions import BonsaiServerError, RetryTimeoutError
@@ -29,35 +31,9 @@ class SimulatorConnection(object):
         self._base_multiplier_milliseconds = 50
         self._maximum_backoff_seconds = 60
         self._timeout = None
-        self._init_reconnect()
-
-    def _init_reconnect(self):
-        """
-        Initializes two different sets to check against when attempting to
-        reconnect the simulator. The first set 'invalid_reconnect_codes'
-        consists of a set of websocket close codes that we cannot or do not
-        want to reconnect the simulator.
-
-        invalid_reconnect_codes:
-            1001 - Brain has finished training
-
-        The second set 'invalid_reconnect_reasons' is a set of strings that we
-        are forced to compare against to determine if the simulator should
-        attempt to reconnect. We understand that this is very fragile but with
-        the current state of the system, we have no choice but to go with this
-        method. In the future we hope that the entire set of invalid reconnect
-        reasons can be mapped to a set of close codes that allow us to safely
-        say we should not attempt to reconnect the simulator
-        """
-
-        # TODO: Bug 7652 says to remove these once 7647 is all fixed.
-        self._fatal_codes = {1001}
-        self._fatal = {
-            'already finished training',
-            'does not exist',
-            'No Brain version exists for Brain',
-            'Cannot predict; currently training'
-        }
+        self.read_timeout_seconds = 240
+        self.lock = Lock()
+        self._thread_stop = Event()
 
     @property
     def client(self):
@@ -81,7 +57,6 @@ class SimulatorConnection(object):
             else:
                 url = self._brain._simulation_url()
 
-            log.info('trying to connect: {}'.format(url))
             req = HTTPRequest(
                 url,
                 connect_timeout=self._network_timeout_seconds,
@@ -89,10 +64,9 @@ class SimulatorConnection(object):
             req.headers['Authorization'] = self._brain.config.accesskey
             req.headers['User-Agent'] = self._brain._user_info
 
-            self._ws = yield websocket_connect(
-                req,
-                ping_interval=self._brain.config.ping_interval,
-                ping_timeout=240)
+            log.network('trying to connect: {}'.format(url))
+            self._ws = yield websocket_connect(req)
+            log.network('Connected to {}'.format(url))
         except HTTPError as e:
             raise gen.Return(e)
         except Exception as e:
@@ -100,9 +74,28 @@ class SimulatorConnection(object):
         else:
             self._timeout = None
             self._connection_attempts = 0
+            if self._brain.config.pong_interval:
+                self._thread_stop.clear()
+                pong_thread = Thread(target=(self._start_pong_loop))
+                pong_thread.daemon = True
+                pong_thread.start()
             raise gen.Return(None)
 
+    def _start_pong_loop(self):
+        ioloop = IOLoop()
+        while not self._thread_stop.is_set():
+            ioloop.run_sync(self._pong)
+            self._thread_stop.wait(self._brain.config.pong_interval)
+
+    @gen.coroutine
+    def _pong(self):
+        with self.lock:
+            if self._ws:
+                log.network('Sending Pong')
+                yield self._ws.protocol._write_frame(True, 0xA, b'')
+
     def _handle_reconnect(self):
+        log.network('Handling reconnect')
         if self._timeout and time.time() > self._timeout:
             raise RetryTimeoutError('Simulator Reconnect Time Exceeded')
 
@@ -113,6 +106,7 @@ class SimulatorConnection(object):
                 'to connect to the platform.'.format(
                     self._timeout - time.time()))
         self._backoff()
+        log.network('Reconnect handled')
 
     def _backoff(self):
         """
@@ -133,10 +127,16 @@ class SimulatorConnection(object):
     @gen.coroutine
     def close(self):
         """ Close the websocket connection """
-        log.info('Closing simulator connection')
-        if self._ws is not None:
-            yield self._ws.close()
+        self._thread_stop.set()
+        if self._ws:
+            with self.lock:
+                log.network('Closing simulator connection')
+                yield self._ws.close()
+                log.network('Closed')
             self._ws = None
+        else:
+            log.network('Websocket was not connected.'
+                        'Close() resulted in no operation')
 
     def _websocket_should_not_reconnect(self):
         """
@@ -171,37 +171,30 @@ class SimulatorConnection(object):
         if not self._retry_timeout_seconds:
             return True
 
-        # These tests will become deprecated by 7647.
-        # TODO: Bug 7652 says to remove these once 7647 is all fixed.
-        if self._ws.close_code in self._fatal_codes:
-            return True
-
-        if (
-                self._ws.close_reason is not None and
-                any(rsn in self._ws.close_reason for rsn in self._fatal)
-           ):
-            return True
-
         return False
 
     def handle_disconnect(self, message=None):
+        log.network('Handling disconnect')
+        self._thread_stop.set()
         if message:
             self._handle_message(message)
 
         if self._ws:
-            log.info(
-                'ws_close_code: {}, ws_close_reason: {}.'.format(
-                    self._ws.close_code, self._ws.close_reason))
-
             if self._websocket_should_not_reconnect():
                 raise BonsaiServerError(
                     'Websocket connection closed. Code: {}, Reason: {}'.format(
                         self._ws.close_code, self._ws.close_reason))
-
+            log.network(
+                'ws_close_code: {}, ws_close_reason: {}.'.format(
+                    self._ws.close_code, self._ws.close_reason))
         self.close()
+        log.network('Disconnect handled.')
 
     def _handle_message(self, message):
         """ Handles error messages returned from initial connection attempt """
+        log.network(
+            'Handling the following message returned from ws:'
+            ' {}'.format(message))
         if isinstance(message, HTTPError):
             if message.code == 401:
                 raise BonsaiServerError(
@@ -213,4 +206,4 @@ class SimulatorConnection(object):
         if not self._retry_timeout_seconds:
             raise BonsaiServerError(
                 'Error while connecting to websocket: {}'.format(message))
-        log.info('Error while connecting to websocket: {}'.format(message))
+        log.network('Error while connecting to websocket: {}'.format(message))

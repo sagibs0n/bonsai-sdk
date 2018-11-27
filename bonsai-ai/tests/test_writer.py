@@ -8,7 +8,7 @@ import shutil
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
 
 
-def test_json_writing(record_json_sim):
+def test_json_writing(record_json_sim, temp_directory):
     while record_json_sim._impl._prev_message_type != \
           ServerToSimulator.RESET:
         record_json_sim.record_append({'foo': 23}, 'bar')
@@ -31,7 +31,7 @@ def test_json_writing(record_json_sim):
     os.remove(record_json_sim.brain.config.record_file)
 
 
-def test_csv_writing(record_csv_sim):
+def test_csv_writing(record_csv_sim, temp_directory):
     while record_csv_sim._impl._prev_message_type != \
           ServerToSimulator.RESET:
         record_csv_sim.record_append({'foo': 23}, 'bar')
@@ -68,9 +68,7 @@ def test_csv_writing(record_csv_sim):
     os.remove(record_csv_sim.brain.config.record_file)
 
 
-def test_file_change(record_csv_sim, tmpdir):
-    if os.path.isdir("sub"):
-        shutil.rmtree("sub")
+def test_file_change(record_csv_sim, temp_directory):
     os.mkdir("sub")
     while record_csv_sim._impl._prev_message_type != ServerToSimulator.RESET:
         if record_csv_sim._impl._prev_message_type == \
@@ -131,9 +129,7 @@ def test_file_change(record_csv_sim, tmpdir):
     os.rmdir("sub")
 
 
-def test_predict_mode_record(record_csv_predict, tmpdir):
-    if os.path.isdir("sub"):
-        shutil.rmtree("sub")
+def test_predict_mode_record(record_csv_predict, temp_directory):
     os.mkdir("sub")
     rcp = record_csv_predict
     sim_steps = 100

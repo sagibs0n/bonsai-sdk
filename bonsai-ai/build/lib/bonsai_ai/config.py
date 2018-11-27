@@ -90,12 +90,12 @@ _RETRY_TIMEOUT_HELP = \
     reconnect to the backend. 0 represents do not reconnect. -1 represents
     retry forever. The default is set to 300 seconds (5 minutes).
     """
-_PING_INTERVAL_HELP = \
+_PONG_INTERVAL_HELP = \
     """
     The time interval in seconds that reflects how often the client will
-    send keep-alive pings to the server. The ping-interval must be equal to 0
+    send keep-alive pongs to the server. The pong-interval must be equal to 0
     or greater than or equal to 1 and less than 240 seconds with 0 indicating
-    that the client should not PING. The default setting is 15s.
+    that the client should not PONG. The default setting is 15s.
     """
 _NETWORK_TIMEOUT_HELP = \
     """
@@ -174,7 +174,7 @@ class Config(object):
         self.brain_version = 0
         self._proxy = None
         self._retry_timeout_seconds = 300
-        self._ping_interval_seconds = 15.0
+        self._pong_interval_seconds = 15.0
         self._network_timeout_seconds = 60
 
         self.verbose = False
@@ -208,7 +208,7 @@ class Config(object):
             'brain_version: {self.brain_version!r}, ' \
             'proxy: {self.proxy!r}, ' \
             'retry_timeout: {self.retry_timeout!r}, ' \
-            'ping_interval: {self.ping_interval!r}, ' \
+            'pong_interval: {self.pong_interval!r}, ' \
             'network_timeout: {self.network_timeout!r}, ' \
             '}}'.format(self=self)
 
@@ -259,17 +259,17 @@ class Config(object):
         self._retry_timeout_seconds = value
 
     @property
-    def ping_interval(self):
-        return self._ping_interval_seconds
+    def pong_interval(self):
+        return self._pong_interval_seconds
 
-    @ping_interval.setter
-    def ping_interval(self, value):
+    @pong_interval.setter
+    def pong_interval(self, value):
         value = float(value)
         if value == 0 or (value >= 1 and value < 240):
-            self._ping_interval_seconds = value
+            self._pong_interval_seconds = value
         else:
             raise ValueError(
-                'Ping interval must be equal to 0 (No pings) or '
+                'Pong interval must be equal to 0 (No pongs) or '
                 'greater than 1 second and less than 240 seconds.')
 
     @property
@@ -381,7 +381,8 @@ class Config(object):
         else:
             parser = ArgumentParser()
 
-        parser.add_argument('--accesskey', help=_ACCESS_KEY_HELP)
+        parser.add_argument(
+            '--accesskey', '--access-key', help=_ACCESS_KEY_HELP)
         parser.add_argument('--username', help=_USERNAME_HELP)
         parser.add_argument('--url', help=_URL_HELP)
         parser.add_argument('--proxy', help=_PROXY_HELP)
@@ -401,8 +402,8 @@ class Config(object):
                             help=_RECORD_HELP)
         parser.add_argument('--retry-timeout', type=int,
                             help=_RETRY_TIMEOUT_HELP)
-        parser.add_argument('--ping-interval', type=float,
-                            help=_PING_INTERVAL_HELP)
+        parser.add_argument('--pong-interval', type=float,
+                            help=_PONG_INTERVAL_HELP)
         parser.add_argument('--network-timeout', type=int,
                             help=_NETWORK_TIMEOUT_HELP)
 
@@ -443,8 +444,8 @@ class Config(object):
         if args.retry_timeout is not None:
             self.retry_timeout = args.retry_timeout
 
-        if args.ping_interval is not None:
-            self.ping_interval = args.ping_interval
+        if args.pong_interval is not None:
+            self.pong_interval = args.pong_interval
 
         if args.network_timeout is not None:
             self.network_timeout = args.network_timeout

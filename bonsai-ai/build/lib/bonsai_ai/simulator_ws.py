@@ -2,6 +2,7 @@
 
 # tornado
 import platform
+from datetime import timedelta
 from concurrent.futures import ThreadPoolExecutor
 from tornado import gen
 from tornado.websocket import WebSocketClosedError, StreamClosedError
@@ -27,11 +28,6 @@ from bonsai_ai.simulator_connection import SimulatorConnection
 log = Logger()
 
 
-def _use_threads():
-    if platform.system() == 'Darwin':
-        return False
-    return True
-
 class Simulator_WS(object):
     class SimStep(object):
         """
@@ -52,8 +48,6 @@ class Simulator_WS(object):
         self._sim = sim
         self._reset_simulator_ws()
         self._sim_connection = SimulatorConnection(brain, sim.predict)
-        if _use_threads():
-            self._executor = ThreadPoolExecutor(max_workers=1)
 
         # protobuf discriptor cache
         self._inkling = InklingMessageFactory()
@@ -288,27 +282,45 @@ class Simulator_WS(object):
         self._on_send(to_server)
         log.pb("to_server: {}".format(MessageToJson(to_server)))
 
-        if (to_server.message_type):
+        if to_server.message_type:
             out_bytes = to_server.SerializeToString()
             try:
-                yield self._sim_connection.client.write_message(
-                    out_bytes, binary=True)
+                with self._sim_connection.lock:
+                    log.network('Writing message to server')
+                    yield self._sim_connection.client.write_message(
+                        out_bytes, binary=True)
+                    log.network('Wrote message to server')
             except (StreamClosedError, WebSocketClosedError) as e:
-                self._sim_connection.handle_disconnect()
-                self._reset_simulator_ws()
+                self._handle_disconnect()
                 return
 
-        # read response from server
-        in_bytes = yield self._sim_connection.client.read_message()
+        try:
+            with self._sim_connection.lock:
+                log.network('Reading response from server')
+                in_bytes = yield gen.with_timeout(
+                    timedelta(
+                        seconds=self._sim_connection.read_timeout_seconds),
+                    self._sim_connection.client.read_message())
+                log.network('Received response from server')
+        except gen.TimeoutError as e:
+            log.error(
+                'WS read took longer than {} seconds. '
+                'Sim will be disconnected.')
+            self._handle_disconnect()
+            return
+
         if in_bytes is None:
-            self._sim_connection.handle_disconnect()
-            self._reset_simulator_ws()
+            self._handle_disconnect()
             return
 
         from_server = ServerToSimulator()
         from_server.ParseFromString(in_bytes)
         log.pb("from_server: {}".format(MessageToJson(from_server)))
         self._on_recv(from_server)
+
+    def _handle_disconnect(self, message=None):
+        self._sim_connection.handle_disconnect(message)
+        self._reset_simulator_ws()
 
     def _process_sim_step(self):
         try:
@@ -336,8 +348,7 @@ class Simulator_WS(object):
             message = yield self._sim_connection.connect()
             # If the connection failed, report
             if message is not None:
-                self._sim_connection.handle_disconnect(message=message)
-                self._reset_simulator_ws()
+                self._handle_disconnect(message)
                 raise gen.Return(UnknownEvent())
 
         if self._prev_message_type == ServerToSimulator.PREDICTION:
@@ -395,12 +406,7 @@ class Simulator_WS(object):
         if isinstance(event, EpisodeStartEvent):
             log.event("Episode Start")
             try:
-                if _use_threads():
-                    state = yield self._executor.submit(
-                        self._sim._on_episode_start, event.initial_properties)
-                else:
-                    state = self._sim._on_episode_start(
-                        event.initial_properties)
+                state = self._sim._on_episode_start(event.initial_properties)
             except Exception as e:
                 raise EpisodeStartError(e)
 
@@ -411,13 +417,8 @@ class Simulator_WS(object):
             log.event("Simulate")
             try:
                 log.simulator("action: {}".format(event.action))
-                if _use_threads():
-                    event.state, event.reward, event.terminal = \
-                        yield self._executor.submit(
-                            self._sim._on_simulate, event.action)
-                else:
-                    event.state, event.reward, event.terminal = \
-                        self._sim._on_simulate(event.action)
+                event.state, event.reward, event.terminal = \
+                    self._sim._on_simulate(event.action)
             except Exception as e:
                 raise SimulateError(e)
 
@@ -426,18 +427,13 @@ class Simulator_WS(object):
         elif isinstance(event, EpisodeFinishEvent):
             log.event("Episode Finish")
             try:
-                if _use_threads():
-                    yield self._executor.submit(self._sim._on_episode_finish)
-                else:
-                    self._sim._on_episode_finish()
+                self._sim._on_episode_finish()
             except Exception as e:
                 raise EpisodeFinishError(e)
             log.simulator_ws('\tF')
         elif isinstance(event, FinishedEvent):
             log.event("Finished")
             self._sim_connection.close()
-            if _use_threads():
-                self._executor.shutdown()
             raise gen.Return(False)
         elif isinstance(event, UnknownEvent):
             log.event("No Operation")

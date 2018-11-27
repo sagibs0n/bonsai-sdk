@@ -1,2 +1,2 @@
-bonsai-ai>=2.0.18
+bonsai-ai>=18.1
 bonsai-cli>=0.8.25

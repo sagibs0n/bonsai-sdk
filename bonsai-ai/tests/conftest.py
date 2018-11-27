@@ -388,5 +388,15 @@ def temp_dot_bonsai():
     rmtree(temp_dir)
 
 
+@pytest.yield_fixture()
+def temp_directory():
+    temp_dir = mkdtemp()
+    cur_dir = os.getcwd()
+    os.chdir(temp_dir)
+    yield
+    os.chdir(cur_dir)
+    rmtree(temp_dir)
+
+
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
     return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.19
+- #7652 Remove redundant close code check from bonsai-ai reconnect policy
+- #7801 - Add `--access-key` as an alias for `--accesskey`
+- #7328: Network logs in bonsai-ai
+- #7729: Added keep-alive pongs on a separate thread
+
 ## 2.0.18
 - #7653: Braind service closes websocket with 1001, 3000-3099 or 4000-4099 when the Sim should not reconnect.
 - #7746: Do not reconnect on ws close code 1000-1099. This is a permanent change.

@@ -45,7 +45,7 @@ def test_reconnect_user_does_not_want_to_reconnect(train_sim, capsys):
             assert False
         counter += 1
     out, err = capsys.readouterr()
-    assert err.count('trying to connect') == 1
+    assert err.count('Starting Training') == 1
     assert err.count('Websocket connection closed.') == 1
 
 
@@ -91,3 +91,19 @@ def test_sim_connection_constructor(train_sim):
     assert sim_connection._retry_timeout_seconds == 300
     assert sim_connection._maximum_backoff_seconds == 60
     assert sim_connection._timeout is None
+
+
+def test_read_timeout_reconnect(train_sim, capsys):
+    train_sim._impl._sim_connection.read_timeout_seconds = 0.00001
+    counter = 0
+    while train_sim.run():
+        if counter == 100:
+            break
+        if counter == 50:
+            train_sim._impl._sim_connection.read_timeout_seconds = 240
+        counter += 1
+    out, err = capsys.readouterr()
+    assert 'WS read took longer than' in err
+    assert 'Starting Training' in err
+    assert 'episode_start' in out
+    assert 'simulate' in out

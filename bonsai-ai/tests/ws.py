@@ -6,6 +6,8 @@ import sys
 from tornado import web, websocket, ioloop
 from google.protobuf.json_format import Parse
 
+from time import sleep
+
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
 from bonsai_ai.proto.generator_simulator_api_pb2 import SimulatorToServer
 
@@ -29,8 +31,12 @@ USER_STATUS = {'brains': [{'name': "cartpole"}]}
 
 
 class BrainRequestHandler(web.RequestHandler):
+    _SLOW = False
 
     def get(self):
+        if self._SLOW:
+            sleep(10)
+
         uri = self.request.uri
         endpoint = uri.split('/')[-1]
         if (endpoint == 'alice'):
@@ -71,6 +77,7 @@ class BonsaiWS(websocket.WebSocketHandler):
     _PREDICT = False
     _FLAKY = False
     _UNAUTHORIZED = False
+    _SLOW = False
     _fail_point = 10
     _fail_duration = 8
 
@@ -160,6 +167,13 @@ class BonsaiWS(websocket.WebSocketHandler):
 
     @count_me
     def on_message(self, in_bytes):
+
+        # dummy message and response for testing libbonsai's custom
+        # websocket client
+        if in_bytes == b"foobar":
+            self.write_message("bazqux", binary=True)
+            return
+
         from_sim = SimulatorToServer()
         from_sim.ParseFromString(in_bytes)
         self._validate_message(from_sim)
@@ -239,6 +253,11 @@ def set_unauthorized_mode(unauthorized):
     BonsaiWS._UNAUTHORIZED = unauthorized
 
 
+def set_slow_mode(slow):
+    BrainRequestHandler._SLOW = slow
+    BonsaiWS._SLOW = slow
+
+
 def set_fail_duration(duration):
     duration = int(duration)
     if duration < 0:
@@ -265,6 +284,8 @@ if __name__ == "__main__":
             set_predict_mode(True)
         elif sys.argv[2] == "F":
             set_flaky_mode(True)
+        elif sys.argv[2] == "S":
+            set_slow_mode(True)
 
         logging.getLogger('tornado.access').disabled = True
         ioloop.IOLoop.current().start()
