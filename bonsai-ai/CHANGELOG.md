@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.20
+- #9524: Fix WS read timeout log
+- #8355: Fix for Config object to print clean JSON
+- #9658: Config update should not fail if profile does not exist in .bonsai
+- #1049: Addressed some issues in Python code that were uncovered by static analysis
+
 ## 2.0.19
 - #7652 Remove redundant close code check from bonsai-ai reconnect policy
 - #7801 - Add `--access-key` as an alias for `--accesskey`

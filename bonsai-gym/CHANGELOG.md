@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.10
+- Update setup.py requirements and requirements.txt
+
 ## 2.0.9
 - Remove PPC64 references
 

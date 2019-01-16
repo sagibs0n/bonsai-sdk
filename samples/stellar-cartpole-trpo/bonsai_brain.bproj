@@ -6,7 +6,7 @@
         "requirements.txt"
     ],
     "training": {
-        "command": "python bridge.py",
+        "command": "python cartpole_simulator.py",
         "simulator": "bonsai.ai"
     }
 }

@@ -2,7 +2,7 @@
 
 import sys
 import os
-from configparser import RawConfigParser
+from configparser import RawConfigParser, NoSectionError
 from os.path import expanduser, join, splitext
 from os import environ
 from argparse import ArgumentParser
@@ -198,18 +198,18 @@ class Config(object):
     def __repr__(self):
         """ Prints out a JSON formatted string of the Config state. """
         return '{{'\
-            'profile: {self.profile!r} ' \
-            'accesskey: {self.accesskey!r}, ' \
-            'username: {self.username!r}, ' \
-            'brain: {self.brain!r}, ' \
-            'url: {self.url!r}, ' \
-            'use_color: {self.use_color!r}, ' \
-            'predict: {self.predict!r}, ' \
-            'brain_version: {self.brain_version!r}, ' \
-            'proxy: {self.proxy!r}, ' \
-            'retry_timeout: {self.retry_timeout!r}, ' \
-            'pong_interval: {self.pong_interval!r}, ' \
-            'network_timeout: {self.network_timeout!r}, ' \
+            '\"profile\": \"{self.profile!r}\", ' \
+            '\"accesskey\": \"{self.accesskey!r}\", ' \
+            '\"username\": \"{self.username!r}\", ' \
+            '\"brain\": \"{self.brain!r}\", ' \
+            '\"url\": \"{self.url!r}\", ' \
+            '\"use_color\": \"{self.use_color!r}\", ' \
+            '\"predict\": \"{self.predict!r}\", ' \
+            '\"brain_version\": \"{self.brain_version!r}\", ' \
+            '\"proxy\": \"{self.proxy!r}\", ' \
+            '\"retry_timeout\": \"{self.retry_timeout!r}\", ' \
+            '\"pong_interval\": \"{self.pong_interval!r}\", ' \
+            '\"network_timeout\": \"{self.network_timeout!r}\" ' \
             '}}'.format(self=self)
 
     @property
@@ -549,6 +549,11 @@ class Config(object):
             if key.lower() == _PROFILE.lower():
                 self._set_profile(value)
             else:
-                self._config_parser.set(self.profile, key, str(value))
+                try:
+                    self._config_parser.set(self.profile, key, str(value))
+                except NoSectionError as e:
+                    # Create and set default profile if it does not exist in .bonsai
+                    self._set_profile(self.profile)
+                    self._config_parser.set(self.profile, key, str(value))
         self._write_dot_bonsai()
         self._parse_config(self.profile)

@@ -1,5 +1,3 @@
-# Inkling code for balancing a pole on a cart
-
 schema GameState
    Float32 position,
    Float32 velocity,
@@ -7,14 +5,15 @@ schema GameState
    Float32 rotation
 end
 
+constant Int8 left = -1 
+constant Int8 right = 1
 
 schema Action
-   Int8{-1,1} command
+   Int8{left, right} command
 end
 
 schema CartPoleConfig
-   Int8 episode_length,
-   UInt8 deque_size
+   Int8 unused
 end
 
 simulator the_simulator(CartPoleConfig)
@@ -37,8 +36,7 @@ curriculum balance_curriculum
 
        lesson balancing
            configure
-               constrain episode_length with Int8{-1},
-               constrain deque_size with UInt8{1}
+               constrain unused with Int8{-1}
            until
                maximize balance_objective
 end

@@ -94,7 +94,7 @@ def test_sim_connection_constructor(train_sim):
 
 
 def test_read_timeout_reconnect(train_sim, capsys):
-    train_sim._impl._sim_connection.read_timeout_seconds = 0.00001
+    train_sim._impl._sim_connection.read_timeout_seconds = 0.000000000000001
     counter = 0
     while train_sim.run():
         if counter == 100:

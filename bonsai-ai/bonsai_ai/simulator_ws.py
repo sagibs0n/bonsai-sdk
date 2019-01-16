@@ -305,7 +305,8 @@ class Simulator_WS(object):
         except gen.TimeoutError as e:
             log.error(
                 'WS read took longer than {} seconds. '
-                'Sim will be disconnected.')
+                'Sim will be disconnected.'.format(
+                    self._sim_connection.read_timeout_seconds))
             self._handle_disconnect()
             return
 

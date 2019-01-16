@@ -32,7 +32,7 @@ setup(
     keywords="bonsai",
 
     install_requires=[
-        'bonsai-ai>=2.0.0',
+        'bonsai-ai>=2.0.19',
         'gym==0.9.7'
     ],
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, '

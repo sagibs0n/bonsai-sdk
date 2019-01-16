@@ -2,6 +2,7 @@
 import os
 import pytest
 import sys
+import json
 from configparser import NoSectionError
 from bonsai_ai import Config
 from bonsai_ai.logger import Logger
@@ -283,6 +284,19 @@ def test_argv_accesskey():
         '--accesskey', '22222'
     ])
     assert config.accesskey == '22222'
+
+
+def test_config_repr_is_json(temp_dot_bonsai):
+    config = Config()
+    json.loads(str(config))
+
+
+def test_config_update_creates_profile(temp_dot_bonsai):
+    """ Tests that the update function creates a profile if it does
+        not exist instead of throwing a NoSectionError """
+    config = Config(profile='FOO')
+    config._update(url='BAR')
+    assert config._has_section('FOO') is True
 
 if __name__ == '__main__':
     pytest.main([__file__])

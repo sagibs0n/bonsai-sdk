@@ -218,6 +218,8 @@ class Brain(object):
             split_ws_url = api_url._replace(scheme='ws')
         elif api_url.scheme == 'https':
             split_ws_url = api_url._replace(scheme='wss')
+        else:
+            split_ws_url = api_url
         ws_url = urlunparse(split_ws_url)
         return ws_url
 
