@@ -4,7 +4,7 @@ import csv
 import json
 import os
 import io
-import shutil
+import sys
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
 
 
@@ -28,6 +28,7 @@ def test_json_writing(record_json_sim, temp_directory):
         assert l['bar.foo'] == 23
 
     record_json_sim.writer.close()
+    record_json_sim.close()
     os.remove(record_json_sim.brain.config.record_file)
 
 
@@ -41,10 +42,10 @@ def test_csv_writing(record_csv_sim, temp_directory):
 
     with io.open(record_csv_sim.brain.config.record_file, newline='') as f:
         reader = csv.reader(f)
-        try:
+        if sys.version_info < (3, ):
             # python 2
             header = reader.next()
-        except Exception as e:
+        else:
             # python 3
             header = next(reader)
 
@@ -65,6 +66,7 @@ def test_csv_writing(record_csv_sim, temp_directory):
             assert custom_idx == row.index('23')
 
     record_csv_sim.writer.close()
+    record_csv_sim.close()
     os.remove(record_csv_sim.brain.config.record_file)
 
 
@@ -81,10 +83,10 @@ def test_file_change(record_csv_sim, temp_directory):
 
     with io.open(record_csv_sim.brain.config.record_file, newline='') as f:
         reader = csv.reader(f)
-        try:
+        if sys.version_info < (3, ):
             # python 2
             header = reader.next()
-        except Exception as e:
+        else:
             # python 3
             header = next(reader)
 
@@ -105,10 +107,10 @@ def test_file_change(record_csv_sim, temp_directory):
     assert os.path.exists("./sub/bazqux.csv")
     with io.open("./sub/bazqux.csv", newline='') as f:
         reader = csv.reader(f)
-        try:
+        if sys.version_info < (3, ):
             # python 2
             header = reader.next()
-        except Exception as e:
+        else:
             # python 3
             header = next(reader)
 
@@ -125,6 +127,7 @@ def test_file_change(record_csv_sim, temp_directory):
             assert custom_idx == row.index('23')
 
     record_csv_sim.writer.close()
+    record_csv_sim.close()
     os.remove("./sub/bazqux.csv")
     os.rmdir("sub")
 
@@ -141,15 +144,16 @@ def test_predict_mode_record(record_csv_predict, temp_directory):
 
     with io.open(rcp.brain.config.record_file, newline='') as f:
         reader = csv.reader(f)
-        try:
+        if sys.version_info < (3, ):
             # python 2
             header = reader.next()
-        except Exception as e:
+        else:
             # python 3
             header = next(reader)
 
         assert 'sim_id' in header
 
     record_csv_predict.writer.close()
+    record_csv_predict.close()
     os.remove(rcp.brain.config.record_file)
     os.rmdir("sub")

@@ -15,13 +15,8 @@ class CartPole(GymSimulator):
     # Environment name, from openai-gym
     environment_name = 'CartPole-v0'
 
-    # simulator name from Inkling
-    # Example Inkling:
-    #   curriculum balance_curriculum
-    #       train balance
-    #       with simulator cartpole_simulator
-    #       ....
-    simulator_name = 'cartpole_simulator'
+    # Simulator name from Inkling
+    simulator_name = 'CartpoleSimulator'
 
     def render(self):
         self._env.render()

@@ -9,6 +9,6 @@
             "height"
         ],
         "episodes": 100,
-        "iterations": 100
+        "iterations": 450000
     }
 }

@@ -1,37 +1,28 @@
-schema GameState
-    Float32 x_position,
-    Float32 x_velocity
-end
+inkling "2.0"
 
-constant Float32 throttleMin = -1.0
-constant Float32 throttleMax = 1.0
-schema Action
-    Float32{throttleMin:throttleMax} command
-end
+type GameState {
+    x_position: number,
+    x_velocity: number
+}
 
-schema MountainCarConfig
-    UInt8 deque_size
-end
+const ThrottleMin = -1.0
+const ThrottleMax = 1.0
+type Action {
+    command: number<ThrottleMin .. ThrottleMax>
+}
 
-simulator mountaincar_continuous_simulator(MountainCarConfig)
-  action  (Action)
-  state  (GameState)
-end
+type MountainCarConfig {
+    deque_size: -1
+}
 
-concept high_score is estimator
-    predicts (Action)
-    follows input(GameState)
-    feeds output
-end
+simulator MountainCarSimulator(action: Action, config: MountainCarConfig): GameState {
+}
 
-curriculum high_score_curriculum
-    train high_score
-    with simulator mountaincar_continuous_simulator
-    objective open_ai_gym_default_objective
-
-        lesson get_high_score
-            configure
-                constrain deque_size with UInt8{1}
-            until
-                maximize open_ai_gym_default_objective
-end
+graph (input: GameState): Action {
+    concept HighScore(input): Action {
+        curriculum {
+            source MountainCarSimulator
+        }
+    }
+    output HighScore
+}

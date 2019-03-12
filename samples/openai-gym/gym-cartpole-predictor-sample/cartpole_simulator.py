@@ -11,22 +11,10 @@ class CartPole(GymSimulator):
     # Environment name, from openai-gym
     environment_name = 'CartPole-v0'
 
-    # simulator name from Inkling
-    # Example Inkling:
-    #   curriculum balance_curriculum
-    #       train balance
-    #       with simulator cartpole_simulator
-    #       ....
-    simulator_name = 'cartpole_simulator'
+    # Simulator name from Inkling
+    simulator_name = 'CartpoleSimulator'
 
-    # convert openai gym observation to our state schema
-    # Example Inkling:
-    #   schema GameState
-    #       Float32 position,
-    #       Float32 velocity,
-    #       Float32 angle,
-    #       Float32 rotation
-    #   end
+    # convert openai gym observation to our state type
     def gym_to_state(self, observation):
         state = {'position': observation[0],
                  'velocity': observation[1],
@@ -34,11 +22,7 @@ class CartPole(GymSimulator):
                  'rotation': observation[3]}
         return state
 
-    # convert our action schema into openai gym action
-    # Example Inkling:
-    #   schema Action
-    #       Int8{0, 1} command
-    #   end
+    # convert our action type into openai gym action
     def action_to_gym(self, action):
         return action['command']
 

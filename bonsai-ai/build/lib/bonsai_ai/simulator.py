@@ -3,7 +3,8 @@
 import abc
 from datetime import datetime
 from time import time
-from tornado.ioloop import IOLoop
+
+import asyncio
 
 from bonsai_ai.exceptions import BonsaiClientError, SimStateError, \
     BonsaiServerError
@@ -122,7 +123,7 @@ class Simulator(object):
         self.brain = brain
         self.writer = None
         self._construct_writer()
-        self._ioloop = IOLoop()
+        self._ioloop = asyncio.get_event_loop()
         self._impl = Simulator_WS(brain, self, name)
 
         # statistics
@@ -132,6 +133,7 @@ class Simulator(object):
         self.iteration_count = 0
         # NOTE: _iteration_rate is accumulative, not per episode
         self._iteration_rate = _RateCounter()
+        self._reset_rate_counter = True
 
     def _construct_writer(self):
         def raise_rte(fname):
@@ -354,6 +356,11 @@ class Simulator(object):
         self.iteration_count = 0
         self.episode_reward = 0
 
+        if self._reset_rate_counter:
+            self._episode_rate.reset()
+            self._iteration_rate.reset()
+            self._reset_rate_counter = False
+
         init_state = self.episode_start(episode_config)
 
         if self.writer is not None:
@@ -412,7 +419,7 @@ class Simulator(object):
 
     def close(self):
         """ Closes websocket Connection """
-        self._impl._sim_connection.close()
+        self._ioloop.run_until_complete(self._impl._sim_connection.close())
 
     def get_next_event(self):
         """
@@ -435,7 +442,8 @@ class Simulator(object):
         """
         try:
             event = None
-            event = self._ioloop.run_sync(self._impl.get_next_event)
+            event = self._ioloop.run_until_complete(
+                self._impl.get_next_event())
         except KeyboardInterrupt:
             event = FinishedEvent()
         except BonsaiClientError as e:
@@ -447,6 +455,9 @@ class Simulator(object):
         except SimStateError as e:
             log.error(e)
             raise e
+        finally:
+            if event is None or isinstance(event, FinishedEvent):
+                self.close()
 
         return event
 
@@ -473,7 +484,7 @@ class Simulator(object):
         """
         try:
             success = False
-            success = self._ioloop.run_sync(self._impl.run)
+            success = self._ioloop.run_until_complete(self._impl.run())
         except KeyboardInterrupt:
             pass
         except BonsaiClientError as e:
@@ -485,8 +496,10 @@ class Simulator(object):
             log.error(e)
             raise e
         finally:
-            if not success and self.writer is not None:
-                self.writer.close()
+            if not success:
+                if self.writer is not None:
+                    self.writer.close()
+                self.close()
             else:
                 self.flush_record()
 

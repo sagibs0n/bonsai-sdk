@@ -5,14 +5,9 @@ import requests
 import sys
 from .version import __version__
 
-try:
-    # Try python 3 import
-    from urllib.parse import urljoin, urlparse, urlunparse
-except ImportError:
-    from urlparse import urljoin, urlparse, urlunparse
+from urllib.parse import urljoin, urlparse, urlunparse
 
 from bonsai_ai.logger import Logger
-
 
 log = Logger()
 

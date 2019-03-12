@@ -1,40 +1,36 @@
-schema GameState
-    Float32 x_position,
-    Float32 x_velocity
-end
+inkling "2.0"
 
-constant Int8 left = 0
-constant Int8 stop = 1
-constant Int8 right = 2
-schema Action
-    Int8{left, stop, right} command
-end
+using Number
+experiment {
+    num_workers: "3",
+    env_runners_per_sampler: "10"
+}
 
-schema MountainCarConfig
-    Int8 episode_length,
-    UInt8 deque_size
-end
+type GameState {
+    x_position: number,
+    x_velocity: number
+}
 
-simulator mountaincar_simulator(MountainCarConfig)
-    action (Action)
-    state (GameState)
-end
+type Action {
+    command: Number.Int8<Left = 0, Stop = 1, Right = 2>
+}
 
-concept high_score is classifier
-    predicts (Action)
-    follows input(GameState)
-    feeds output
-end
+type MountainCarConfig {
+    episode_length: -1,
+    deque_size: 1
+}
 
-curriculum high_score_curriculum
-    train high_score
-    with simulator mountaincar_simulator
-    objective open_ai_gym_default_objective
+simulator MountainCarSimulator(action: Action, config: MountainCarConfig): GameState {
+}
 
-        lesson get_high_score
-            configure
-                constrain episode_length with Int8{-1},
-                constrain deque_size with UInt8{1}
-            until
-                maximize open_ai_gym_default_objective
-end
+graph (input: GameState): Action {
+    concept HighScore(input): Action {
+        experiment {
+            max_step_per_concept: "1000000"
+        }
+        curriculum {
+            source MountainCarSimulator
+        }
+    }
+    output HighScore
+}

@@ -13,6 +13,7 @@ def test_sequencing(sequence_sim):
             break
         steps -= 1
     print('Finished Running {}.'.format(sequence_sim.name))
+    sequence_sim.close()
 
 
 def test_sequencing_predict(pr_sequence_sim):
@@ -24,6 +25,7 @@ def test_sequencing_predict(pr_sequence_sim):
             break
         steps -= 1
     print('Finished Running {}.'.format(pr_sequence_sim.name))
+    pr_sequence_sim.close()
 
 
 if __name__ == '__main__':

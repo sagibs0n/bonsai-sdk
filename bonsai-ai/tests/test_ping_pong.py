@@ -1,7 +1,8 @@
 import time
 
+
 def test_train_sim(train_sim, capsys):
-    """ 
+    """
     Tests that pongs are received by our mock server.
     This test is contained in it's own file because it
     captures stdout output and checks that a received
@@ -15,4 +16,4 @@ def test_train_sim(train_sim, capsys):
             break
         counter += 1
     out, err = capsys.readouterr()
-    assert('Received PONG: ' in out)
+    assert(train_sim._impl._sim_connection._pong_counter > 0)

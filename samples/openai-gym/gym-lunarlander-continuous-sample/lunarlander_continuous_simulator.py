@@ -10,7 +10,7 @@ log.setLevel(logging.DEBUG)
 
 class LunarLanderContinuous(GymSimulator):
     environment_name = 'LunarLanderContinuous-v2'
-    simulator_name = 'lunarlander_continuous_simulator'
+    simulator_name = 'LunarLanderSimulator'
 
     def gym_to_state(self, observation):
         state = {'x_position': observation[0],

@@ -45,6 +45,8 @@ def test_luminance_sim(luminance_sim):
     assert luminance_sim._impl._prev_message_type == \
         ServerToSimulator.RESET
 
+    luminance_sim.close()
+
 
 def test_luminance_pack(luminance_sim):
     # run uninterrupted until we hit a prediction
@@ -83,3 +85,5 @@ def test_luminance_pack(luminance_sim):
     assert len(pixels) == len(luminance_sim.STATE_PIXELS)
     for p1, p2 in zip(pixels, luminance_sim.STATE_PIXELS):
         assert isclose(p1, p2)
+
+    luminance_sim.close()

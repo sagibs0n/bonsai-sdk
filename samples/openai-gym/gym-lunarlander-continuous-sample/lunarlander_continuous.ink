@@ -1,46 +1,36 @@
-schema GameState
-    Float32 x_position,
-    Float32 y_position,
-    Float32 x_velocity,
-    Float32 y_velocity,
-    Float32 angle,
-    Float32 rotation,
-    Float32 left_leg,
-    Float32 right_leg
-end
+inkling "2.0"
 
-constant Float32 throttleMin = -1.0
-constant Float32 throttleMax = 1.0
-schema LanderAction
-    Float32{throttleMin:throttleMax} engine1,
-    Float32{throttleMin:throttleMax} engine2
-end
+type GameState {
+    x_position: number,
+    y_position: number,
+    x_velocity: number,
+    y_velocity: number,
+    angle: number,
+    rotation: number,
+    left_leg: number,
+    right_leg: number
+}
 
-schema LunarLanderConfig
-    Int8 episode_length,
-    UInt8 deque_size
-end
+const ThrottleMin = -1.0
+const ThrottleMax = 1.0
+type LanderAction {
+    engine1: number<ThrottleMin .. ThrottleMax>,
+    engine2: number<ThrottleMin .. ThrottleMax>
+}
 
-simulator lunarlander_continuous_simulator(LunarLanderConfig)
-  action  (LanderAction)
-  state  (GameState)
-end
+type LunarLanderConfig {
+    episode_length: -1,
+    deque_size: 1
+}
 
-concept land is estimator
-    predicts (LanderAction)
-    follows input(GameState)
-    feeds output
-end
+simulator LunarLanderSimulator(action: LanderAction, config: LunarLanderConfig): GameState {
+}
 
-curriculum landing_curriculum
-    train land
-    with simulator lunarlander_continuous_simulator
-    objective open_ai_gym_default_objective
-
-        lesson landing
-            configure
-                constrain episode_length with Int8{-1},
-                constrain deque_size with UInt8{1}
-            until maximize open_ai_gym_default_objective
-end
-
+graph (input: GameState): LanderAction {
+    concept Land(input): LanderAction {
+        curriculum {
+            source LunarLanderSimulator
+        }
+    }
+    output Land
+}

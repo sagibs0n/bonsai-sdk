@@ -7,7 +7,11 @@ import requests
 import time
 from tempfile import mkdtemp
 from shutil import rmtree
-from tornado.ioloop import IOLoop
+
+from aiohttp import web
+import asyncio
+from multiprocessing import Process
+from socket import SOL_SOCKET, SO_REUSEADDR, socket
 
 try:
     from unittest.mock import Mock
@@ -16,8 +20,12 @@ except ImportError:
 
 
 from bonsai_ai import Simulator, Brain, Config, Luminance, Predictor
-from ws import open_bonsai_ws, close_bonsai_ws, set_predict_mode, \
-    set_flaky_mode, set_unauthorized_mode
+from ws_aiohttp import open_bonsai_ws
+
+
+def tgt(protocol):
+    the_app = open_bonsai_ws(protocol)
+    web.run_app(app=the_app, host="127.0.0.1", port=9000)
 
 
 class CartSim(Simulator):
@@ -185,9 +193,8 @@ def record_json_config():
         __name__,
         '--accesskey=VALUE',
         '--username=alice',
-        '--url=http://localhost:8889',
+        '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
-        '--proxy=VALUE',
         '--record=foobar.json'
     ])
 
@@ -198,23 +205,20 @@ def record_csv_config():
         __name__,
         '--accesskey=VALUE',
         '--username=alice',
-        '--url=http://localhost:8889',
+        '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
-        '--proxy=VALUE',
         '--record=foobar.csv'
     ])
 
 
 @pytest.fixture
 def record_csv_config_predict():
-    set_predict_mode(True)
     return Config([
         __name__,
         '--accesskey=VALUE',
         '--username=alice',
-        '--url=http://localhost:8889',
+        '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
-        '--proxy=VALUE',
         '--record=foobar.csv',
         '--predict=4'
     ])
@@ -222,29 +226,68 @@ def record_csv_config_predict():
 
 @pytest.fixture
 def train_config():
-    set_flaky_mode(False)
-    set_unauthorized_mode(False)
     return Config([
         __name__,
         '--accesskey=VALUE',
         '--username=alice',
-        '--url=http://localhost:8889',
+        '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
-        '--proxy=VALUE',
+    ])
+
+
+@pytest.fixture
+def auth_config():
+    return Config([
+        __name__,
+        '--accesskey=VALUE',
+        '--username=needsauth',
+        '--url=http://127.0.0.1:9000',
+        '--brain=cartpole',
+    ])
+
+
+@pytest.fixture
+def flaky_train_config():
+    return Config([
+        __name__,
+        '--accesskey=VALUE',
+        '--username=flake',
+        '--url=http://127.0.0.1:9000',
+        '--brain=cartpole',
+    ])
+
+
+@pytest.fixture
+def eofstream_config():
+    return Config([
+        __name__,
+        '--accesskey=VALUE',
+        '--username=eofstream',
+        '--url=http://127.0.0.1:9000',
+        '--brain=cartpole',
+    ])
+
+
+@pytest.fixture
+def error_msg_config():
+    return Config([
+        __name__,
+        '--accesskey=VALUE',
+        '--username=error_msg',
+        '--url=http://127.0.0.1:9000',
+        '--brain=cartpole',
     ])
 
 
 @pytest.fixture
 def predict_config():
-    set_predict_mode(True)
-    set_flaky_mode(False)
+    # set_flaky_mode(False)
     return Config([
         __name__,
         '--accesskey=VALUE',
         '--username=alice',
-        '--url=http://localhost:8889',
+        '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
-        '--proxy=VALUE',
         '--predict=4',
     ])
 
@@ -259,84 +302,119 @@ def logging_config():
 
 @pytest.fixture
 def record_json_sim(record_json_config):
+    requests.patch("http://127.0.0.1:9000/cartpole")
     brain = Brain(record_json_config)
     sim = CartSim(brain, 'cartpole_simulator')
     sim.enable_keys(['foo'], 'bar')
-    sim._ioloop = IOLoop.current()
     return sim
 
 
 @pytest.fixture
 def record_csv_sim(record_csv_config):
+    requests.patch("http://127.0.0.1:9000/cartpole")
     brain = Brain(record_csv_config)
     sim = CartSim(brain, 'cartpole_simulator')
     sim.enable_keys(['foo'], 'bar')
-    sim._ioloop = IOLoop.current()
     return sim
 
 
 @pytest.fixture
 def record_csv_predict(record_csv_config_predict):
+    requests.patch("http://127.0.0.1:9000/cartpole")
     brain = Brain(record_csv_config_predict)
     sim = CartSim(brain, 'cartpole_simulator')
     sim.enable_keys(['foo'], 'bar')
-    sim._ioloop = IOLoop.current()
     return sim
 
 
 @pytest.fixture
-def train_sim(train_config):
+def train_sim(train_config, request):
+    requests.patch("http://127.0.0.1:9000/cartpole")
     brain = Brain(train_config)
     sim = CartSim(brain, 'cartpole_simulator')
-    sim._ioloop = IOLoop.current()
+    return sim
+
+
+@pytest.fixture
+def auth_sim(auth_config, request):
+    requests.patch("http://127.0.0.1:9000/cartpole")
+    brain = Brain(auth_config)
+    sim = CartSim(brain, 'cartpole_simulator')
+    return sim
+
+
+@pytest.fixture
+def flaky_train_sim(flaky_train_config, request):
+    requests.patch("http://127.0.0.1:9000/reset")
+    requests.patch("http://127.0.0.1:9000/cartpole")
+    brain = Brain(flaky_train_config)
+    sim = CartSim(brain, 'cartpole_simulator')
+    return sim
+
+
+@pytest.fixture
+def eofstream_sim(eofstream_config, request):
+    requests.patch("http://127.0.0.1:9000/reset")
+    requests.patch("http://127.0.0.1:9000/cartpole")
+    brain = Brain(eofstream_config)
+    sim = CartSim(brain, 'cartpole_simulator')
+    return sim
+
+
+@pytest.fixture
+def error_msg_sim(error_msg_config, request):
+    requests.patch("http://127.0.0.1:9000/reset")
+    requests.patch("http://127.0.0.1:9000/cartpole")
+    brain = Brain(error_msg_config)
+    sim = CartSim(brain, 'cartpole_simulator')
     return sim
 
 
 @pytest.fixture
 def predict_sim(predict_config):
+    requests.patch("http://127.0.0.1:9000/cartpole")
     brain = Brain(predict_config)
     sim = CartSim(brain, 'cartpole_simulator')
-    sim._ioloop = IOLoop.current()
     return sim
 
 
 @pytest.fixture
 def sequence_sim(train_config):
+    requests.patch("http://127.0.0.1:9000/cartpole")
     brain = Brain(train_config)
     sim = SequencingSim(brain, 'cartpole_simulator')
-    sim._ioloop = IOLoop.current()
     return sim
 
 
 @pytest.fixture
 def pr_sequence_sim(predict_config):
+    requests.patch("http://127.0.0.1:9000/cartpole")
     brain = Brain(predict_config)
     sim = SequencingSim(brain, 'cartpole_simulator')
-    sim._ioloop = IOLoop.current()
     return sim
 
 
 @pytest.fixture
 def predictor(predict_config):
+    requests.patch("http://127.0.0.1:9000/cartpole")
     brain = Brain(predict_config)
     predictor = Predictor(brain, 'cartpole_simulator')
-    predictor._ioloop = IOLoop.current()
     return predictor
 
 
 @pytest.fixture
 def predictor_with_train_config(train_config):
+    requests.patch("http://127.0.0.1:9000/cartpole")
     brain = Brain(train_config)
     predictor = Predictor(brain, 'cartpole_simulator')
-    predictor._ioloop = IOLoop.current()
     return predictor
 
 
 @pytest.fixture
 def luminance_sim(train_config):
+    requests.patch("http://127.0.0.1:9000/luminance")
     brain = Brain(train_config)
     sim = LuminanceSim(brain, 'random_simulator')
-    sim._ioloop = IOLoop.current()
     return sim
 
 
@@ -345,24 +423,27 @@ def pytest_addoption(parser):
                      help="Path to message JSON")
 
 
-@pytest.fixture(scope='module', autouse=True)
+@pytest.fixture(scope='session', autouse=True)
 def bonsai_ws(request):
     default_protocol = "{}/proto_bin/cartpole_wire.json".format(
                            os.path.dirname(__file__))
 
     # default protocol can be overriden at the module level
-    protocol = getattr(request.module, 'protocol_file', default_protocol)
+    protocol = getattr(request.session, 'protocol_file', default_protocol)
 
     # .. and the command line option has the highest precedence
     if request.config.getoption('--protocol'):
         protocol = request.config.getoption('--protocol')
-    server = open_bonsai_ws(protocol)
+
+    proc = Process(target=tgt, args=(protocol,))
+    proc.daemon = True
+    proc.start()
+    time.sleep(2)
 
     def fin():
-        close_bonsai_ws()
-        server.stop()
+        proc.terminate()
+
     request.addfinalizer(fin)
-    return server
 
 
 @pytest.yield_fixture(scope='module')
@@ -380,7 +461,7 @@ def temp_dot_bonsai():
     config._update(profile='dev',
                    username='admin',
                    accesskey='00000000-1111-2222-3333-000000000001',
-                   url='http://localhost')
+                   url='http://127.0.0.1')
 
     yield
 

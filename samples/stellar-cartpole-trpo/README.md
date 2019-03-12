@@ -21,13 +21,13 @@ If you're using the web interface, please follow the [quick start guide](http://
 2. Run this command to start training mode for your BRAIN.
        `bonsai train start`
 3. Connect the simulator for training. Use the `--render` option to render the cartpole.
-       `python cartpolesimulator.py --brain=<your_brain> --render`
+       `python cartpole_simulator.py --brain=<your_brain> --render`
 4. When training has hit a sufficient accuracy for prediction, about 250 for at least 100 episodes, stop training your BRAIN.
        `bonsai train stop`
 
 ### GET PREDICTIONS
 1. Run the simulator using predictions from your BRAIN. You can now see AI playing the game!
-       `python cartpolesimulator.py --brain=<your_brain> --predict=<brain_version>`
+       `python cartpole_simulator.py --brain=<your_brain> --predict=<brain_version>`
 
 
 ## Questions about Inkling?

@@ -32,7 +32,7 @@ register(
 
 class FrozenLake(GymSimulator):
     environment_name = ENVIRONMENT
-    simulator_name = 'frozenlake_simulator'
+    simulator_name = 'FrozenlakeSimulator'
 
     def gym_to_state(self, observation):
         state = {'current_pos': observation}

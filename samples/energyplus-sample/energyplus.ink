@@ -1,54 +1,36 @@
 # A minimal Inkling program for a BRAIN that learns how to operate climate
 # control using BCVTB and EnergyPlus.
 
-# A schema defining the dictionary returned from the Python simulation's
+inkling "2.0"
+
+# A type defining the dictionary returned from the Python simulation's
 # advance method to the BRAIN
-constant Int32 minIrradiation = 0
-constant Int32 maxIrradiation = 10
-schema SimState
-    Int32{minIrradiation:maxIrradiation} SolarIrradiation
-end
+const MinIrradiation = 0
+const MaxIrradiation = 10
+type SimState {
+    SolarIrradiation: number<MinIrradiation .. MaxIrradiation step 1>
+}
 
-# This schema defines the 'actions', a dictionary of control signals this AI
-# can send to the climate control
-# shade == night, off, day
-schema SimAction
-    Int32 {0, 1} shade
-end
-
-# This schema defines the dictionary passed as a parameter to the 
-# set_properties method of the Python simulator
-schema SimConfig
-    Int32{-1} unused
-end
+# This type defines the 'actions', a dictionary of control signals this AI
+# can send to the climate control.
+type SimAction {
+    shade: number<Off = 0, On = 1>
+}
 
 # The simulator clause declares that a simulator named "energyplus_simulator"
 # will be connecting to the server for training.
-# The following statements bind the above schemas to this simulator
-simulator energyplus_simulator(SimConfig)
-    action (SimAction)
-    state (SimState)
-end
+# The following statements bind the above types to this simulator
+simulator EnergyplusSimulator(action: SimAction): SimState {
+}
 
-# An example concept that predicts a SimAction given a SimState
-# In this simple demo we just ask the Bonsai Platform to generate any model
-# that can learn to control the server using these inputs and outputs
-concept my_concept is classifier
-   predicts (SimAction)
-   follows input(SimState)
-   feeds output
-end
-
-# This curriculum will train the Bonsai Platform generated model until it can
-# reach a maximum value of 'reward_function'. A function defined in the 
-# energyplus_simulator
-curriculum my_curriculum
-    train my_concept
-    with simulator energyplus_simulator
-    objective reward_function
-        lesson my_first_lesson
-            configure
-                constrain unused with Int32{-1}
-            until
-                maximize reward_function
-end
+graph (input: SimState): SimAction {
+    # An example concept that predicts a SimAction given a SimState
+    # In this simple demo we just ask the Bonsai Platform to generate any model
+    # that can learn to control the server using these inputs and outputs
+    concept ManageShade(input): SimAction {
+        curriculum {
+            source EnergyplusSimulator
+        }
+    }
+    output ManageShade
+}

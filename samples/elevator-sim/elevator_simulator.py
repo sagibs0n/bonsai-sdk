@@ -103,7 +103,7 @@ def main():
 
     brain = Brain(config)
 
-    sim = ElevatorSimulator(brain, 'elevator_simulator')
+    sim = ElevatorSimulator(brain, 'ElevatorSimulator')
     while sim.run():
         continue
 

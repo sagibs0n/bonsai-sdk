@@ -8,13 +8,8 @@ from os import environ
 from argparse import ArgumentParser
 import json
 
-try:
-    # Try python 3 import
-    from urllib.parse import urlparse, urlunparse
-    from urllib.request import getproxies
-except ImportError:
-    from urlparse import urlparse, urlunparse
-    from urllib import getproxies
+from urllib.parse import urlparse, urlunparse
+from urllib.request import getproxies
 
 from bonsai_ai.logger import Logger
 
@@ -230,7 +225,7 @@ class Config(object):
                 https_proxy = proxy_dict.get(_HTTPS_PROXY, None)
                 if https_proxy is not None:
                     proxy = https_proxy
-
+   
         return proxy
 
     @proxy.setter

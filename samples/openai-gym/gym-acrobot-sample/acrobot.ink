@@ -1,39 +1,39 @@
-schema GameState
-    Float32 cos_theta0,
-    Float32 sin_theta0,
-    Float32 cos_theta1,
-    Float32 sin_theta1,
-    Float32 theta0_dot,
-    Float32 theta1_dot
-end
+inkling "2.0"
 
-schema Action
-    Int8{0, 1, 2} command
-end
+using Number
+experiment {
+    num_workers: "3",
+    env_runners_per_sampler: "10"
+}
 
-schema AcrobotConfig
-    UInt8 deque_size
-end
+type GameState {
+    cos_theta0: number,
+    sin_theta0: number,
+    cos_theta1: number,
+    sin_theta1: number,
+    theta0_dot: number,
+    theta1_dot: number
+}
 
-simulator acrobot_simulator(AcrobotConfig)
-    action (Action)
-    state (GameState)
-end
+type Action {
+    command: Number.Int8<Left = 0, Center = 1, Right = 2>
+}
 
-concept height is classifier
-    predicts (Action)
-    follows input(GameState)
-    feeds output
-end
+type AcrobotConfig {
+    deque_size: 1
+}
 
-curriculum height_curriculum
-    train height
-    with simulator acrobot_simulator
-    objective open_ai_gym_default_objective
+simulator AcrobotSimulator(action: Action, config: AcrobotConfig): GameState {
+}
 
-        lesson reaching_height
-            configure
-                constrain deque_size with UInt8{1}
-            until
-                maximize open_ai_gym_default_objective
-end
+graph (input: GameState): Action {
+    concept Height(input): Action {
+        experiment {
+            max_step_per_concept: "1000000"
+        }
+        curriculum {
+            source AcrobotSimulator
+        }
+    }
+    output Height
+}

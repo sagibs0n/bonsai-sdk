@@ -1,11 +1,7 @@
 # Copyright (C) 2018 Bonsai, Inc.
 
-# tornado
-import platform
-from datetime import timedelta
-from concurrent.futures import ThreadPoolExecutor
-from tornado import gen
-from tornado.websocket import WebSocketClosedError, StreamClosedError
+from asyncio import TimeoutError
+from aiohttp import WSMsgType, ClientError, EofStream
 
 # protobuf
 from google.protobuf.json_format import MessageToJson
@@ -111,6 +107,7 @@ class Simulator_WS(object):
 
         # Caching actions for predictor
         self._predictor_action = None
+        self._sim._reset_rate_counter = True
 
     def _new_state_message(self):
         """
@@ -276,8 +273,7 @@ class Simulator_WS(object):
         msg = self._inkling.new_message_from_proto(schema)
         return [f.name for f in msg.DESCRIPTOR.fields]
 
-    @gen.coroutine
-    def _ws_send_recv(self):
+    async def _ws_send_recv(self):
         to_server = SimulatorToServer()
         self._on_send(to_server)
         log.pb("to_server: {}".format(MessageToJson(to_server)))
@@ -286,41 +282,43 @@ class Simulator_WS(object):
             out_bytes = to_server.SerializeToString()
             try:
                 with self._sim_connection.lock:
-                    log.network('Writing message to server')
-                    yield self._sim_connection.client.write_message(
-                        out_bytes, binary=True)
-                    log.network('Wrote message to server')
-            except (StreamClosedError, WebSocketClosedError) as e:
-                self._handle_disconnect()
+                    if self._sim_connection.client.closed:
+                        await self._handle_disconnect(
+                            "Attempted write to closed web socket"
+                        )
+                        return
+                    await self._sim_connection.client.send_bytes(out_bytes)
+
+            except ClientError as e:
+                await self._handle_disconnect(e)
                 return
 
         try:
             with self._sim_connection.lock:
                 log.network('Reading response from server')
-                in_bytes = yield gen.with_timeout(
-                    timedelta(
-                        seconds=self._sim_connection.read_timeout_seconds),
-                    self._sim_connection.client.read_message())
+                msg = await self._sim_connection.client.receive()
                 log.network('Received response from server')
-        except gen.TimeoutError as e:
+        except TimeoutError as e:
             log.error(
                 'WS read took longer than {} seconds. '
                 'Sim will be disconnected.'.format(
                     self._sim_connection.read_timeout_seconds))
-            self._handle_disconnect()
+            await self._handle_disconnect()
             return
 
-        if in_bytes is None:
-            self._handle_disconnect()
+        if msg.type == WSMsgType.CLOSE or msg.type == WSMsgType.CLOSED \
+              or msg.type == WSMsgType.ERROR or isinstance(msg.data, EofStream):
+            await self._handle_disconnect(msg.extra)
             return
 
         from_server = ServerToSimulator()
-        from_server.ParseFromString(in_bytes)
+        from_server.ParseFromString(msg.data)
+
         log.pb("from_server: {}".format(MessageToJson(from_server)))
         self._on_recv(from_server)
 
-    def _handle_disconnect(self, message=None):
-        self._sim_connection.handle_disconnect(message)
+    async def _handle_disconnect(self, message=None):
+        await self._sim_connection.handle_disconnect(message)
         self._reset_simulator_ws()
 
     def _process_sim_step(self):
@@ -340,17 +338,16 @@ class Simulator_WS(object):
         except StopIteration:
             return None
 
-    @gen.coroutine
-    def get_next_event(self):
+    async def get_next_event(self):
         """ Update the internal event machine and return the next
         event for processing"""
         # Grab a web socket connection if needed
         if self._sim_connection.client is None:
-            message = yield self._sim_connection.connect()
+            message = await self._sim_connection.connect()
             # If the connection failed, report
             if message is not None:
-                self._handle_disconnect(message)
-                raise gen.Return(UnknownEvent())
+                await self._handle_disconnect(message)
+                return UnknownEvent()
 
         if self._prev_message_type == ServerToSimulator.PREDICTION:
             if self._prev_step_terminal[0]:
@@ -360,9 +357,9 @@ class Simulator_WS(object):
             else:
                 event = self._process_sim_step()
             if event is not None:
-                raise gen.Return(event)
+                return event
 
-        yield self._ws_send_recv()
+        await self._ws_send_recv()
 
         pmt = self._prev_message_type
         if pmt == ServerToSimulator.ACKNOWLEDGE_REGISTER:
@@ -394,15 +391,13 @@ class Simulator_WS(object):
         else:
             event = UnknownEvent()
 
-        raise gen.Return(event)
+        return event
 
-    @gen.coroutine
-    def run(self):
+    async def run(self):
         """ Run loop called from Simulator. Encapsulates one round trip
         to the backend, which might include a simulation loop.
         """
-
-        event = yield self.get_next_event()
+        event = await self.get_next_event()
 
         if isinstance(event, EpisodeStartEvent):
             log.event("Episode Start")
@@ -434,9 +429,9 @@ class Simulator_WS(object):
             log.simulator_ws('\tF')
         elif isinstance(event, FinishedEvent):
             log.event("Finished")
-            self._sim_connection.close()
-            raise gen.Return(False)
+            await self._sim_connection.close()
+            return False
         elif isinstance(event, UnknownEvent):
             log.event("No Operation")
 
-        raise gen.Return(True)
+        return True

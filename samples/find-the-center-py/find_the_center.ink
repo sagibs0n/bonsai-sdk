@@ -1,37 +1,22 @@
-schema GameState
-    Int8 value
-end
+inkling "2.0"
+using Number
 
-constant Int8 dec = -1
-constant Int8 stay = 0
-constant Int8 inc = 1
-schema PlayerMove
-    Int8{dec, stay, inc} delta
-end
+type GameState {
+    value: Number.Int8
+}
 
-schema SimConfig
-    Int8 dummy
-end
+type PlayerMove {
+    delta: Number.Int8<Dec = -1, Stay = 0, Inc = 1>
+}
 
-concept find_the_center
-    is classifier
-    predicts (PlayerMove)
-    follows input(GameState)
-    feeds output
-end
+simulator find_the_center_sim(action: PlayerMove): GameState {
+}
 
-simulator find_the_center_sim(SimConfig)
-    action (PlayerMove)
-    state (GameState)
-end
-
-curriculum find_the_center_curriculum
-    train find_the_center
-    with simulator find_the_center_sim
-    objective time_at_goal
-        lesson seek_center
-            configure
-                constrain dummy with Int8{-1}
-            until
-                maximize time_at_goal
-end
+graph (input: GameState): PlayerMove {
+    concept find_the_center(input): PlayerMove {
+        curriculum {
+            source find_the_center_sim
+        }
+    }
+    output find_the_center
+}

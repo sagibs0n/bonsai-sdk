@@ -1,5 +1,6 @@
-""" The state transform, action transform, terminal function and reward 
-    function. The functions in this file are called from cartpolesimulator.py.
+"""
+Provides the state transform, action transform, terminal function and reward
+function. The functions in this file are called from cartpole_simulator.py.
 """
 
 import math
@@ -29,7 +30,7 @@ def terminal(model_state):
     x, x_dot, theta, theta_dot = model_state
     theta_threshold_radians = 12 * 2 * math.pi / 360
     x_threshold = 2.4
- 
+
     # Terminal occurs when the cart's position is too far to the left or right
     # or the cart's pole has tipped too far.
     done = (x < -x_threshold or
@@ -51,4 +52,3 @@ def reward(model_state, done):
     if not done:
         return 1.0
     return -0.01
-

@@ -159,6 +159,7 @@ class BonsaiWS(websocket.WebSocketHandler):
     def open(self):
         ''' When the first client connects, read the message data from
         disk'''
+        print("OPENINGS")
         if self._message_data is not None:
             return
         with open(self._PROTOCOL_FILE, 'r') as f:
@@ -235,6 +236,7 @@ application = web.Application([
 
 
 def open_bonsai_ws(protocol):
+    print("CALL THE OPEN WITH: {}".format(protocol))
     set_predict_mode(False)
     BonsaiWS._PROTOCOL_FILE = protocol
     return application.listen(8889)

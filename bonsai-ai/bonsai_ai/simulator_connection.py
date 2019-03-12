@@ -1,13 +1,13 @@
 import time
 from random import uniform
 from threading import Lock, Thread, Event
-from tornado import gen
-from tornado.ioloop import IOLoop
-from tornado.websocket import websocket_connect
-from tornado.httpclient import HTTPRequest, HTTPError
 from bonsai_ai.exceptions import BonsaiServerError, RetryTimeoutError
 from bonsai_ai.logger import Logger
 
+from aiohttp import ClientSession, WSServerHandshakeError, TCPConnector
+import asyncio
+
+from urllib.parse import urlparse
 
 log = Logger()
 
@@ -24,6 +24,7 @@ class SimulatorConnection(object):
         """
         self._brain = brain
         self._predict = predict
+        self._session = None
         self._ws = None
         self._retry_timeout_seconds = brain.config.retry_timeout
         self._network_timeout_seconds = brain.config.network_timeout
@@ -34,6 +35,8 @@ class SimulatorConnection(object):
         self.read_timeout_seconds = 240
         self.lock = Lock()
         self._thread_stop = Event()
+        self._ioloop = asyncio.get_event_loop()
+        self._pong_counter = 0
 
     @property
     def client(self):
@@ -44,8 +47,7 @@ class SimulatorConnection(object):
         """
         return self._ws
 
-    @gen.coroutine
-    def connect(self):
+    async def connect(self):
         self._connection_attempts += 1
 
         if self._connection_attempts > 1:
@@ -57,45 +59,61 @@ class SimulatorConnection(object):
             else:
                 url = self._brain._simulation_url()
 
-            req = HTTPRequest(
-                url,
-                connect_timeout=self._network_timeout_seconds,
-                request_timeout=self._network_timeout_seconds)
-            req.headers['Authorization'] = self._brain.config.accesskey
-            req.headers['User-Agent'] = self._brain._user_info
+            # we only support http proxies, which actually represent
+            # most proxies if no scheme is specified, prepend "http://"
+            # to make aiohttp happy. if HTTPS is specified, allow websocket
+            # connection to blow up on connection
+            proxy = self._brain.config.proxy
+            if proxy:
+                uri = urlparse(proxy)
+                if uri.scheme == "":
+                    proxy = "http://" + proxy
 
             log.network('trying to connect: {}'.format(url))
-            self._ws = yield websocket_connect(req)
+            self._session = ClientSession(
+                connector=TCPConnector(force_close=True)
+            )
+
+            self._ws = await self._session.ws_connect(
+                url,
+                timeout=self._network_timeout_seconds,
+                receive_timeout=self.read_timeout_seconds,
+                headers={
+                    'Authorization': self._brain.config.accesskey,
+                    'User-Agent': self._brain._user_info
+                },
+                proxy=proxy
+            )
             log.network('Connected to {}'.format(url))
-        except HTTPError as e:
-            raise gen.Return(e)
-        except Exception as e:
-            raise gen.Return(repr(e))
+        except WSServerHandshakeError as e:
+            log.info("Failed to connect: {}".format(repr(e)))
+            return e
         else:
             self._timeout = None
             self._connection_attempts = 0
+
             if self._brain.config.pong_interval:
                 self._thread_stop.clear()
                 pong_thread = Thread(target=(self._start_pong_loop))
                 pong_thread.daemon = True
                 pong_thread.start()
-            raise gen.Return(None)
+            return None
 
     def _start_pong_loop(self):
-        ioloop = IOLoop()
         while not self._thread_stop.is_set():
-            ioloop.run_sync(self._pong)
+            self._pong()
             self._thread_stop.wait(self._brain.config.pong_interval)
 
-    @gen.coroutine
     def _pong(self):
         with self.lock:
             if self._ws:
                 log.network('Sending Pong')
-                yield self._ws.protocol._write_frame(True, 0xA, b'')
+                self._ioloop.call_soon_threadsafe(self._ws.pong)
+                self._pong_counter += 1
 
     def _handle_reconnect(self):
         log.network('Handling reconnect')
+
         if self._timeout and time.time() > self._timeout:
             raise RetryTimeoutError('Simulator Reconnect Time Exceeded')
 
@@ -124,19 +142,21 @@ class SimulatorConnection(object):
                  self._connection_attempts, sleep))
         time.sleep(sleep)
 
-    @gen.coroutine
-    def close(self):
+    async def close(self):
         """ Close the websocket connection """
         self._thread_stop.set()
         if self._ws:
             with self.lock:
                 log.network('Closing simulator connection')
-                yield self._ws.close()
+                if not self._ws.closed:
+                    await self._ws.close()
                 log.network('Closed')
             self._ws = None
         else:
             log.network('Websocket was not connected.'
                         'Close() resulted in no operation')
+        if self._session:
+            await self._session.close()
 
     def _websocket_should_not_reconnect(self):
         """
@@ -173,7 +193,7 @@ class SimulatorConnection(object):
 
         return False
 
-    def handle_disconnect(self, message=None):
+    async def handle_disconnect(self, message=None):
         log.network('Handling disconnect')
         self._thread_stop.set()
         if message:
@@ -183,11 +203,12 @@ class SimulatorConnection(object):
             if self._websocket_should_not_reconnect():
                 raise BonsaiServerError(
                     'Websocket connection closed. Code: {}, Reason: {}'.format(
-                        self._ws.close_code, self._ws.close_reason))
+                        self._ws.close_code, message))
             log.network(
                 'ws_close_code: {}, ws_close_reason: {}.'.format(
-                    self._ws.close_code, self._ws.close_reason))
-        self.close()
+                    self._ws.close_code, message))
+
+        await self.close()
         log.network('Disconnect handled.')
 
     def _handle_message(self, message):
@@ -195,14 +216,14 @@ class SimulatorConnection(object):
         log.network(
             'Handling the following message returned from ws:'
             ' {}'.format(message))
-        if isinstance(message, HTTPError):
+        if isinstance(message, WSServerHandshakeError):
             if message.code == 401:
                 raise BonsaiServerError(
-                    'Error while connecting to websocket: {}. '
-                    'Please run \'bonsai configure\' again.'.format(message))
+                    'Error while connecting to websocket: 401 - Unauthorized. '
+                    'Please run \'bonsai configure\' again.')
             if message.code == 404:
                 raise BonsaiServerError(
-                    'Error while connecting to websocket: {}'.format(message))
+                    'Error while connecting to websocket: 404 - Not Found.')
         if not self._retry_timeout_seconds:
             raise BonsaiServerError(
                 'Error while connecting to websocket: {}'.format(message))

@@ -34,18 +34,6 @@ def test_brain_update(blank_brain, v2_get):
     assert blank_brain.latest_version == 4
 
 
-@pytest.mark.xfail(strict=True)
-def test_sim_exists(train_config):
-    """
-    Brain.sim_exists should reflect state of mock backend.
-    This fails because requests and pytest don't play nice.
-    """
-    brain = Brain(train_config, 'cartpole')
-
-    assert brain.sim_exists('cartpole_simulator')
-    assert not brain.sim_exists('cartpole_simulatorX')
-
-
 def test_brain_predict_version():
     """ Tests brain version property """
     config = Config([__name__, '--predict=4'])

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.1
+- #10531: EofStream websocket message bug fix
+
+## 2.1.0
+- #10065: Rate counter is reset on first episode start
+- #10405: Discontinue support for Python 2
+- #10405: Migrate to aiohttp internals
+
 ## 2.0.20
 - #9524: Fix WS read timeout log
 - #8355: Fix for Config object to print clean JSON

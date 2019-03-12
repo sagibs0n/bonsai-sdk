@@ -1,42 +1,31 @@
-schema GameState
-   Float32 position,
-   Float32 velocity,
-   Float32 angle,
-   Float32 rotation
-end
+# Inkling code for balancing a pole on a cart
 
-constant Int8 left = -1 
-constant Int8 right = 1
+inkling "2.0"
 
-schema Action
-   Int8{left, right} command
-end
+type GameState {
+    position: number,
+    velocity: number,
+    angle: number,
+    rotation: number
+}
 
-schema CartPoleConfig
-   Int8 unused
-end
+type Action {
+    command: number<Left = -1, Right = 1>
+}
 
-simulator the_simulator(CartPoleConfig)
-   action (Action)
-   state (GameState)
-end
+type CartPoleConfig {
+    episode_length: -1,
+    deque_size: 1
+}
 
-concept balance is classifier
-   predicts (Action)
-   follows input(GameState)
-   feeds output
+simulator CartpoleSimulator(action: Action, config: CartPoleConfig): GameState {
+}
 
-end
-
-curriculum balance_curriculum
-   train balance
-
-   with simulator the_simulator
-   objective balance_objective
-
-       lesson balancing
-           configure
-               constrain unused with Int8{-1}
-           until
-               maximize balance_objective
-end
+graph (input: GameState): Action {
+    concept Balance(input): Action {
+        curriculum {
+            source CartpoleSimulator
+        }
+    }
+    output Balance
+}

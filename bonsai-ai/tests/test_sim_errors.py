@@ -15,6 +15,8 @@ def test_simulate_error(train_sim, bonsai_ws, monkeypatch):
         assert str(e).find("Boo") >= 0
     else:
         assert False
+    finally:
+        train_sim.close()
 
 
 def test_episode_start_error(train_sim, bonsai_ws, monkeypatch):
@@ -28,6 +30,8 @@ def test_episode_start_error(train_sim, bonsai_ws, monkeypatch):
         assert str(e).find("Hiss") >= 0
     else:
         assert False
+    finally:
+        train_sim.close()
 
 
 def test_simulate_bad_state(train_sim, bonsai_ws, monkeypatch):
@@ -46,6 +50,8 @@ def test_simulate_bad_state(train_sim, bonsai_ws, monkeypatch):
         assert str(e).find("position") >= 0
     else:
         assert False
+    finally:
+        train_sim.close()
 
 
 def test_episode_start_bad_state(train_sim, bonsai_ws, monkeypatch):
@@ -64,6 +70,8 @@ def test_episode_start_bad_state(train_sim, bonsai_ws, monkeypatch):
         assert str(e).find("should be a float") >= 0
     else:
         assert False
+    finally:
+        train_sim.close()
 
 
 def test_error_logging(train_sim, bonsai_ws, monkeypatch, capsys):
@@ -78,3 +86,5 @@ def test_error_logging(train_sim, bonsai_ws, monkeypatch, capsys):
         assert err.find("RuntimeError") >= 0
     else:
         assert False
+    finally:
+        train_sim.close()

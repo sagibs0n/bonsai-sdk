@@ -53,7 +53,7 @@ if __name__ == "__main__":
     brain = bonsai_ai.Brain(config)
 
     model = CartPole()
-    sim = CartpoleSimulator(brain, 'the_simulator', config)
+    sim = CartpoleSimulator(brain, 'CartpoleSimulator', config)
     sim.model = model
 
     render = None

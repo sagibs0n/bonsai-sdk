@@ -12,7 +12,7 @@ SKIP_FRAME = 4
 
 class MountainCar(GymSimulator):
     environment_name = 'MountainCar-v0'
-    simulator_name = 'mountaincar_simulator'
+    simulator_name = 'MountainCarSimulator'
 
     def gym_to_state(self, observation):
         state = {'x_position': observation[0],

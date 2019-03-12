@@ -186,7 +186,7 @@ class TicTacToeGame(object):
 
 class TicTacToeSim(Simulator):
     def __init__(self, brain, iteration_limit=0):
-        super(TicTacToeSim, self).__init__(brain, 'tictactoe_simulator')
+        super(TicTacToeSim, self).__init__(brain, 'TicTacToeSimulator')
 
         self._env = TicTacToeGame()
 

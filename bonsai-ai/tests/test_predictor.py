@@ -25,17 +25,21 @@ def test_predictor(predictor, bonsai_ws):
             ServerToSimulator.PREDICTION
 
 
-@pytest.mark.xfail(raises=(SimStateError), strict=True)
 def test_predictor_invalid_state(predictor, bonsai_ws):
-    state = {'FOO': 0,
-             'BAR': 0,
-             'CART': 0,
-             'POLE': 0}
+    try: 
+        state = {'FOO': 0,
+                 'BAR': 0,
+                 'CART': 0,
+                 'POLE': 0}
 
-    with predictor:
-        assert predictor._impl._prev_message_type == \
-            ServerToSimulator.UNKNOWN
-        predictor.get_action(state)
+        with predictor:
+            assert predictor._impl._prev_message_type == \
+                ServerToSimulator.UNKNOWN
+            predictor.get_action(state)
+    except SimStateError as e:
+        return
+
+    assert False, "XFAIL"
 
 
 def test_predictor_with_train_config(predictor_with_train_config, capsys):
@@ -43,6 +47,7 @@ def test_predictor_with_train_config(predictor_with_train_config, capsys):
         predictor_with_train_config.get_action(None)
     out, err = capsys.readouterr()
     assert 'Error while connecting to websocket' in err
+    predictor_with_train_config.close()
 
 
 def test_predictor_predict_flag(predictor):

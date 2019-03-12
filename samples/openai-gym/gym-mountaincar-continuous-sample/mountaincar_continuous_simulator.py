@@ -13,7 +13,7 @@ SKIP_FRAME = 6
 
 class MountainCarContinuous(GymSimulator):
     environment_name = 'MountainCarContinuous-v0'
-    simulator_name = 'mountaincar_continuous_simulator'
+    simulator_name = 'MountainCarSimulator'
 
     def gym_to_state(self, observation):
         state = {'x_position': observation[0],

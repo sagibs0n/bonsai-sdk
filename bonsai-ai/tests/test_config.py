@@ -23,7 +23,6 @@ def test_missing_predict_flag():
     assert config.predict is False
 
 
-@pytest.mark.xfail(raises=(RuntimeError, ValueError), strict=True)
 @pytest.mark.parametrize(
     "invalid_value",
     ['--predict=blah',
@@ -33,9 +32,12 @@ def test_missing_predict_flag():
      '--predict=-1'])
 def test_invalid_predict_version(invalid_value):
     # to verify error log, catch and inspect instead of expecting fail (xfail)
-    config = Config([__name__, invalid_value])
-    assert False, \
-        "Expected {} to throw an error".format(invalid_value)
+    try:
+        config = Config([__name__, invalid_value])
+    except (RuntimeError, ValueError) as e:
+        return
+
+    assert False, "XFAIL"
 
 
 def test_basic_argument_settings():
@@ -45,12 +47,10 @@ def test_basic_argument_settings():
         '--username=VALUE',
         '--url=VALUE',
         '--brain=VALUE',
-        '--proxy=VALUE',
         ])
     assert config.accesskey == 'VALUE'
     assert config.username == 'VALUE'
     assert config.url == 'VALUE'
-    assert config.proxy == 'VALUE'
     assert config.brain == 'VALUE'
     # NOTE: no way to test these at the moment as config doesn't expose
     # logging interface.
@@ -85,12 +85,20 @@ def set_proxies(http_proxy, https_proxy, all_proxy):
     update_env_key('all_proxy', all_proxy)
 
 
+def unset_proxies():
+    vars = ['http_proxy', 'https_proxy', 'all_proxy']
+    for v in vars:
+        if v in os.environ:
+            del os.environ[v]
+
+
 def test_no_proxy():
     set_proxies(http_proxy=None,
                 https_proxy=None,
                 all_proxy=None)
     config = Config()
     assert config.proxy is None
+    unset_proxies()
 
 
 def test_just_http_proxy():
@@ -99,6 +107,7 @@ def test_just_http_proxy():
                 all_proxy='fail')
     config = Config()
     assert config.proxy == 'pass'
+    unset_proxies()
 
 
 def test_http_proxy_fallback_for_https_url():
@@ -108,6 +117,7 @@ def test_http_proxy_fallback_for_https_url():
     config = Config()
     config.url = 'https://localhost'
     assert config.proxy == 'pass'
+    unset_proxies()
 
 
 def test_https_preferred_over_http():
@@ -119,6 +129,7 @@ def test_https_preferred_over_http():
     assert config.proxy == 'https'
     config.url = 'http://localhost'
     assert config.proxy == 'pass'
+    unset_proxies()
 
 
 def test_http_is_fallback_for_https():
@@ -130,12 +141,17 @@ def test_http_is_fallback_for_https():
     assert config.proxy == 'pass'
     config.url = 'http://localhost'
     assert config.proxy == 'all'
+    unset_proxies()
 
 
-@pytest.mark.xfail(raises=(RuntimeError, ValueError), strict=True)
 def test_assignment_of_poorly_formatted_proxy():
-    config = Config()
-    config.proxy = "http://foo:bar"
+    try:
+        config = Config()
+        config.proxy = "http://foo:bar"
+    except (RuntimeError, ValueError) as e:
+        return
+
+    assert False, "XFAIL"
 
 
 def test_commandline_overrides_other_settings():
@@ -153,7 +169,7 @@ def test_config_with_argv_and_dev_profile(temp_dot_bonsai):
     config = Config(argv=sys.argv, profile='dev')
     assert config.accesskey == '00000000-1111-2222-3333-000000000001'
     assert config.username == 'admin'
-    assert config.url.startswith('http://localhost')
+    assert config.url.startswith('http://127.0.0.1')
 
 
 def test_config_with_different_profile(temp_dot_bonsai):
@@ -161,14 +177,14 @@ def test_config_with_different_profile(temp_dot_bonsai):
     assert config.accesskey == '00000000-1111-2222-3333-000000000001'
 
 
-@pytest.mark.xfail(raises=NoSectionError)
 def test_config_with_missing_profile():
+    # should not fail on missing profile
     config = Config(profile='doesnt_exist')
 
 
 def test_config_assignments(temp_dot_bonsai):
     config = Config(profile='dev')
-    assert config.url == 'http://localhost'
+    assert config.url == 'http://127.0.0.1'
     assert config.username == 'admin'
     assert config.accesskey == '00000000-1111-2222-3333-000000000001'
 
@@ -225,12 +241,16 @@ def test_argv_retry_timeout():
     assert config.retry_timeout == 10
 
 
-@pytest.mark.xfail(raises=ValueError, strict=True)
 def test_invalid_retry_timeout_throws_error():
-    config = Config([
-        __name__,
-        '--retry-timeout', '-1000'
-    ])
+    try:
+        config = Config([
+            __name__,
+            '--retry-timeout', '-1000'
+        ])
+    except ValueError as e:
+        return
+
+    assert False, "XFAIL"
 
 
 def test_default_pong_interval():
@@ -263,13 +283,17 @@ def test_invalid_pong_interval_throws_error():
         config.pong_interval = 250
 
 
-@pytest.mark.xfail(raises=SystemExit, strict=True)
 def test_invalid_retry_timeout_argv_throws_error():
     """ Incorrect values in argparse raise a SystemExit """
-    config = Config([
-        __name__,
-        '--pong-interval', 'foo'
-    ])
+    try:
+        config = Config([
+            __name__,
+            '--pong-interval', 'foo'
+        ])
+    except SystemExit as e:
+        return
+
+    assert False, "XFAIL"
 
 
 def test_argv_accesskey():

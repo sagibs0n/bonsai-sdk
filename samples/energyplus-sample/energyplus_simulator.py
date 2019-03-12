@@ -576,7 +576,7 @@ if __name__ == "__main__":
     else:
         config = Config(sys.argv)
         brain = Brain(config)
-        sim = EnergyPlusSimulator(brain, 'energyplus_simulator')
+        sim = EnergyPlusSimulator(brain, 'EnergyplusSimulator')
 
         brain.update()
         while(sim.run()):

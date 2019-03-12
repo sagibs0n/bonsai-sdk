@@ -12,9 +12,9 @@ class Acrobot(GymSimulator):
     environment_name = 'Acrobot-v1'
 
     # simulator name from Inkling
-    simulator_name = 'acrobot_simulator'
+    simulator_name = 'AcrobotSimulator'
 
-    # convert openai gym observation to our state schema
+    # convert openai gym observation to our state type
     def gym_to_state(self, observation):
         state = {"cos_theta0": observation[0],
                  "sin_theta0": observation[1],
@@ -24,7 +24,7 @@ class Acrobot(GymSimulator):
                  "theta1_dot": observation[5]}
         return state
 
-    # convert our action schema into openai gym action
+    # convert our action type into openai gym action
     def action_to_gym(self, action):
         return action['command']
 
