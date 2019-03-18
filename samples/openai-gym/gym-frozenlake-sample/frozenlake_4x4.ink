@@ -3,7 +3,8 @@ inkling "2.0"
 using Number
 
 experiment {
-    random_seed: "20"
+    random_seed: "20",
+    env_runners_per_sampler: "3"
 }
 
 type GameState {

@@ -10,6 +10,7 @@ from bonsai_ai.proto.generator_simulator_api_pb2 import SimulatorToServer
 from aiohttp import web, WSMsgType, WSCloseCode, EofStream
 import weakref
 import os
+import async_timeout
 
 
 def count_me(fnc):
@@ -38,6 +39,7 @@ class BonsaiWS:
     _SLOW = False
     _EOFSTREAM = False
     _ERROR_MSG = False
+    _PONG = False
     _fail_point = 10
     _fail_duration = 8
 
@@ -114,6 +116,7 @@ class BonsaiWS:
         self._PREDICT = False
         self._EOFSTREAM = False
         self._ERROR_MSG = False
+        self._PONG = False
 
     async def load_cartpole(self, request):
         p_file = "{}/proto_bin/cartpole_wire.json".format(
@@ -167,6 +170,11 @@ class BonsaiWS:
         self.reset_flags()
         self._ERROR_MSG = True
         return await self.handle_msg(request)
+  
+    async def handle_pong(self, request):
+        self.reset_flags()
+        self._PONG = True
+        return await self.handle_msg(request)
 
     @count_me
     async def handle_msg(self, request):
@@ -182,6 +190,18 @@ class BonsaiWS:
         ws = web.WebSocketResponse()
         await ws.prepare(request)
         ws.force_close()
+
+        if self._PONG:
+            if os.path.exists('pong.json'):
+                os.remove('pong.json')
+            with async_timeout.timeout(1, loop=ws._loop):
+                msg = await ws._reader.read()
+            if msg.type == WSMsgType.PONG:
+                pong_json = {'PONG': 1}
+                with open('pong.json', 'w') as outfile:
+                    json.dump(pong_json, outfile)
+            await ws.close()
+            return ws
 
         request.app['websockets'].add(ws)
 
@@ -258,11 +278,13 @@ def open_bonsai_ws(protocol):
     app.router.add_get('/v1/needsauth/cartpole/sims/ws',
                        bonsai_ws.auth_train)
     app.router.add_get('/v1/flake/cartpole/4/predictions/ws',
-                       bonsai_ws.flaky_predict),
+                       bonsai_ws.flaky_predict)
     app.router.add_get('/v1/eofstream/cartpole/sims/ws',
-                       bonsai_ws.eofstream),
+                       bonsai_ws.eofstream)
     app.router.add_get('/v1/error_msg/cartpole/sims/ws',
                        bonsai_ws.error_msg)
+    app.router.add_get('/v1/pong/cartpole/sims/ws',
+                       bonsai_ws.handle_pong)
     app.router.add_patch('/reset',
                          bonsai_ws.reset)
     app.router.add_patch('/luminance',

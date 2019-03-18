@@ -1,6 +1,7 @@
 # Copyright (C) 2018 Bonsai, Inc.
 
 import json
+import functools
 import requests
 import sys
 from .version import __version__
@@ -120,6 +121,61 @@ def _request_sims(url, headers, proxy_dict, timeout):
         return response.json()
     else:
         response.raise_for_status()
+
+
+def _handle_connection_and_timeout_errors(func):
+    """
+    Decorator for handling ConnectionErrors and Timeout errors raised 
+    by the requests library
+
+    :param func: the function being decorated
+    """
+    @functools.wraps(func)
+    def _handler(self, url, *args, **kwargs):
+        try:
+            return func(self, url, *args, **kwargs)
+        except requests.exceptions.ConnectionError:
+            message = \
+                "Request failed. Unable to connect to domain: {}".format(url)
+            log.error(message)
+        except requests.exceptions.Timeout:
+            message = "Request failed. Request to {} timed out".format(url)
+            log.error(message)
+
+    return _handler
+
+
+def _handle_http_error(response):
+    """
+    :param response: The response from the server.
+    """
+    try:
+        message = 'Request failed with error message:\n{}'.format(
+            response.json()["error"])
+    except:
+        message = 'Request failed.'
+    log.error(message)
+
+
+def _dict(response):
+    """
+    Translates the response from the server into a dictionary. The implication
+    is that the server should send back a JSON response for every REST API
+    request, and if for some reason, that response is missing, it should be
+    treated as an empty JSON message rather than an error. This method will
+    change empty responses into empty dictionaries. Responses that are not
+    formatted as JSON will log an error.
+    :param response: The response from the server.
+    :return: Dictionary form the JSON text in the response.
+    """
+    if response and response.text and response.text.strip():
+        try:
+            response_dict = response.json()
+            return response_dict
+        except ValueError as e:
+            msg = 'Unable to decode json from {}\n{}'.format(response.url, e)
+            log.error(msg)
+    return {}
 
 
 class Brain(object):
@@ -321,9 +377,102 @@ class Brain(object):
         return self._state
 
     @property
+    def status(self):
+        """ Returns the current status of the target BRAIN """
+        self.update()
+        return self._status
+
+    @property
+    def sample_rate(self):
+        """ Returns the sample rate in iterations/second for 
+            all simulators connected to the brain """
+        self.update()
+        try:
+            rate = sum(
+                sims['sample_rate'] for sims in self._status['simulators'])
+            return rate
+        except (TypeError, KeyError):
+            log.info('Unable to retrieve sample rate from BRAIN ')
+            return 0
+
+    @property
     def version(self):
         """ Returns the current BRAIN version number. """
         if self.config.brain_version == 0:
             return self.latest_version
         else:
             return self.config.brain_version
+
+    def training_episode_metrics(self, version=None):
+        """
+            Returns data about each training episode for a given version of a
+            BRAIN. Defaults to configured version if none is given.
+            :param version: Version of your brain.
+                Defaults to configured version.
+        """
+        if version is None:
+            version = self.version
+        self.update()
+        url = '{}/{}/metrics/episode_value'.format(
+            self._brain_url(), version
+        )
+        log.brain('Getting training episode metrics from {}'.format(url))
+        response = self._get(url)
+        return response
+
+    def iteration_metrics(self, version=None):
+        """
+            Returns iteration data for a given version of a BRAIN. 
+            Defaults to configured version if none is given. Iterations
+            contain data for the number of iterations that have
+            occured in a simulation and at what timestamp. This data
+            gets logged about once every 100 iterations. This can be useful
+            for long episodes when other metrics may not be getting data.
+            :param version: Version of your brain. 
+                Defaults to configured version.
+        """
+        if version is None: 
+            version = self.version
+        self.update()
+        url = '{}/{}/metrics/iterations'.format(
+            self._brain_url(), version
+        )
+        log.brain('Getting iteration metrics from {}'.format(url))
+        response = self._get(url)
+        return response
+
+    def test_episode_metrics(self, version=None):
+        """
+            Returns test pass data for a given version of a BRAIN. 
+            Defaults to configured version if none is given. Test pass 
+            episodes occur once every 20 training episodes during training 
+            for a given version of a BRAIN. The value is representative of
+            the AI's performance at a regular interval of training
+            :param version: Version of your brain.
+                Defaults to configured version.
+        """
+        if version is None:
+            version = self.version
+        self.update()
+        url = '{}/{}/metrics/test_pass_value'.format(
+            self._brain_url(), version
+        )
+        log.brain('Getting test episode metrics from {}'.format(url))
+        response = self._get(url)
+        return response
+
+    @_handle_connection_and_timeout_errors
+    def _get(self, url):
+        response = requests.get(
+            url=url,
+            headers=self._request_header(),
+            proxies=self._proxy_header(),
+            allow_redirects=False,
+            timeout=self._timeout
+        )
+        try:
+            response.raise_for_status()
+            _log_response(response)
+        except requests.exceptions.HTTPError:
+            _handle_http_error(response)
+        return _dict(response)

@@ -182,6 +182,26 @@ def v2_get(monkeypatch):
 
 
 @pytest.fixture
+def request_errors(request, monkeypatch):
+    error = None
+    if request.param == 'connection':
+        error = requests.exceptions.ConnectionError
+    elif request.param == 'timeout':
+        error = requests.exceptions.Timeout
+    elif request.param == 'http':
+        response = Mock()
+        response.raise_for_status = Mock(
+            side_effect=requests.exceptions.HTTPError(503))
+        response.json = Mock(side_effect=ValueError)
+    def _get(*args, **kwargs):
+        if error:
+            raise error
+        else:
+            return response
+    monkeypatch.setattr(requests, 'get', _get)
+
+
+@pytest.fixture
 def blank_brain():
     config = Config([__name__])
     return Brain(config)
@@ -280,6 +300,17 @@ def error_msg_config():
 
 
 @pytest.fixture
+def pong_config():
+    return Config([
+        __name__,
+        '--accesskey=VALUE',
+        '--username=pong',
+        '--url=http://127.0.0.1:9000',
+        '--brain=cartpole',
+    ])
+
+
+@pytest.fixture
 def predict_config():
     # set_flaky_mode(False)
     return Config([
@@ -366,6 +397,15 @@ def error_msg_sim(error_msg_config, request):
     requests.patch("http://127.0.0.1:9000/reset")
     requests.patch("http://127.0.0.1:9000/cartpole")
     brain = Brain(error_msg_config)
+    sim = CartSim(brain, 'cartpole_simulator')
+    return sim
+
+
+@pytest.fixture
+def pong_sim(pong_config, request):
+    requests.patch("http://127.0.0.1:9000/reset")
+    requests.patch("http://127.0.0.1:9000/cartpole")
+    brain = Brain(pong_config)
     sim = CartSim(brain, 'cartpole_simulator')
     return sim
 

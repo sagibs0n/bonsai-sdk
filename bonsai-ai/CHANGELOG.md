@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.2
+- #10599: Fix pongs
+- #10268: Metrics + status + sample_rate API in bonsai_ai.Brain
+
 ## 2.1.1
 - #10531: EofStream websocket message bug fix
 

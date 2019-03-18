@@ -36,7 +36,6 @@ class SimulatorConnection(object):
         self.lock = Lock()
         self._thread_stop = Event()
         self._ioloop = asyncio.get_event_loop()
-        self._pong_counter = 0
 
     @property
     def client(self):
@@ -108,8 +107,8 @@ class SimulatorConnection(object):
         with self.lock:
             if self._ws:
                 log.network('Sending Pong')
-                self._ioloop.call_soon_threadsafe(self._ws.pong)
-                self._pong_counter += 1
+                #TODO #10532: Make coroutine when upgrading aiohttp
+                self._ws.pong()
 
     def _handle_reconnect(self):
         log.network('Handling reconnect')

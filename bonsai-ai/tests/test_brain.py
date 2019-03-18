@@ -2,8 +2,10 @@
 
 # pylint: disable=missing-docstring
 # pylint: disable=too-many-function-args
-import pytest
+import json
 import os
+import pytest
+import requests
 
 from bonsai_ai import Brain, Config
 from bonsai_ai.brain import IN_PROGRESS, STOPPED
@@ -91,6 +93,62 @@ def test_brain_timeout():
     config = Config([__name__, '--network-timeout=1'])
     brain = Brain(config)
     assert brain._timeout == 1
+
+
+def test_brain_training_episode_metrics(train_config):
+    """
+      NOTE: Test does not return correct JSON according to API documentation.
+            We are verifying code paths.
+    """
+    brain = Brain(train_config)
+    metrics = brain.training_episode_metrics()
+    json.dumps(metrics)
+
+
+def test_brain_iteration_metrics(train_config):
+    """
+      NOTE: Test does not return correct JSON according to API documentation.
+            We are verifying code paths.
+    """
+    brain = Brain(train_config)
+    metrics = brain.iteration_metrics()
+    json.dumps(metrics)
+
+
+def test_brain_test_episode_metrics(train_config):
+    """
+      NOTE: Test does not return correct JSON according to API documentation.
+            We are verifying code paths.
+    """
+    brain = Brain(train_config)
+    metrics = brain.training_episode_metrics()
+    json.dumps(metrics)
+
+
+@pytest.mark.parametrize('request_errors', ['connection'], indirect=True)
+def test_brain_get_connection_error(train_config, request_errors, capsys):
+    brain = Brain(train_config)
+    brain.training_episode_metrics()
+    _, err = capsys.readouterr()
+    assert 'Unable to connect' in err
+
+
+@pytest.mark.parametrize('request_errors', ['timeout'], indirect=True)
+def test_brain_get_timeout_error(train_config, request_errors, capsys):
+    brain = Brain(train_config)
+    brain.training_episode_metrics()
+    _, err = capsys.readouterr()
+    assert 'timed out' in err
+
+
+@pytest.mark.parametrize('request_errors', ['http'], indirect=True)
+def test_brain_get_http_error(train_config, request_errors, capsys):
+    brain = Brain(train_config)
+    metrics = brain.training_episode_metrics()
+    _, err = capsys.readouterr()
+    assert 'Request failed' in err
+    assert metrics == {}
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

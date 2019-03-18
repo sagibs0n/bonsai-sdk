@@ -2,6 +2,11 @@ inkling "2.0"
 
 using Number
 
+experiment {
+    random_seed: "20",
+    env_runners_per_remote: "3"
+}
+
 type GameState {
     current_pos: number<0 .. 63 step 1>
 }
