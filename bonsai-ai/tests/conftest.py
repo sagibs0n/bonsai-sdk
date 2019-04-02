@@ -12,6 +12,7 @@ from aiohttp import web
 import asyncio
 from multiprocessing import Process
 from socket import SOL_SOCKET, SO_REUSEADDR, socket
+from typing import Any, cast
 
 try:
     from unittest.mock import Mock
@@ -162,7 +163,7 @@ class SequencingSim(Simulator):
 @pytest.fixture(autouse=True)
 def mock_get(monkeypatch, request):
     def _get(*args, **kwargs):
-        response = Mock()
+        response = cast(Any, Mock())
         test_json = {'versions': [{'version': 1}],
                      'state': 'In Progress'}
         response.json.return_value = test_json
@@ -173,7 +174,7 @@ def mock_get(monkeypatch, request):
 @pytest.fixture
 def v2_get(monkeypatch):
     def _get(*args, **kwargs):
-        response = Mock()
+        response = cast(Any, Mock())
         test_json = {'versions': [{'version': 4}],
                      'state': 'Stopped'}
         response.json.return_value = test_json
@@ -184,12 +185,13 @@ def v2_get(monkeypatch):
 @pytest.fixture
 def request_errors(request, monkeypatch):
     error = None
+    response = None
     if request.param == 'connection':
         error = requests.exceptions.ConnectionError
     elif request.param == 'timeout':
         error = requests.exceptions.Timeout
     elif request.param == 'http':
-        response = Mock()
+        response = cast(Any, Mock())
         response.raise_for_status = Mock(
             side_effect=requests.exceptions.HTTPError(503))
         response.json = Mock(side_effect=ValueError)

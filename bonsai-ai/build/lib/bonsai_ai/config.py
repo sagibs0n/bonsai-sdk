@@ -238,8 +238,11 @@ class Config(object):
     def record_format(self):
         """ The log record format, as inferred from the extension of
         the log filename"""
-        _, fmt = splitext(self.record_file)
-        return fmt
+        if self.record_file:
+            _, fmt = splitext(self.record_file)
+            return fmt
+        else:
+            return None
 
     @property
     def retry_timeout(self):

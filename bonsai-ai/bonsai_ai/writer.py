@@ -57,9 +57,7 @@ class Writer(object):
         if key in self._schema:
             self._current_record[key] = value
         else:
-            raise KeyError(
-                "({}) Current Writer schema: {}".format(
-                    key, repr(self._schema)))
+            pass
 
     def _open_logfile(self):
         if sys.version_info[0] < 3:
@@ -122,7 +120,8 @@ class Writer(object):
         As with `write`, this method is called automatically by
         `Simulator`. You generally shouldn't need to call it by hand.
         """
-        self._logfile.close()
+        if self._logfile:
+            self._logfile.close()
 
 
 class CSVWriter(Writer):

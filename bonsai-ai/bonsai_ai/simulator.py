@@ -500,7 +500,5 @@ class Simulator(object):
                 if self.writer is not None:
                     self.writer.close()
                 self.close()
-            else:
-                self.flush_record()
 
         return success

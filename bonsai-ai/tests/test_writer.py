@@ -14,11 +14,14 @@ def test_json_writing(record_json_sim, temp_directory):
         record_json_sim.record_append({'foo': 23}, 'bar')
         record_json_sim.run()
 
+    # un-enabled keys should be silently ignored
+    record_json_sim.record_append({'baz': 23}, 'bat')
+
     assert os.path.exists(record_json_sim.brain.config.record_file)
     with open(record_json_sim.brain.config.record_file, 'r') as f:
         content = [l.strip() for l in f.readlines()]
 
-    assert len(content) > 0
+    assert len(content) == 4
     json_content = [json.loads(l) for l in content]
     assert len(json_content) == len(content)
 
@@ -58,12 +61,14 @@ def test_csv_writing(record_csv_sim, temp_directory):
         #     print(row)
 
         # assert False
-
+        count = 0
         for row in reader:
+            count += 1
             if '270022238' in row:
                 assert id_idx == row.index('270022238')
             assert '23' in row
             assert custom_idx == row.index('23')
+        assert count == 4
 
     record_csv_sim.writer.close()
     record_csv_sim.close()
@@ -96,11 +101,14 @@ def test_file_change(record_csv_sim, temp_directory):
         id_idx = header.index('sim_id')
         custom_idx = header.index('bar.foo')
 
+        counter = 0
         for row in reader:
+            counter += 1
             if '270022238' in row:
                 assert id_idx == row.index('270022238')
             assert '23' in row
             assert custom_idx == row.index('23')
+        assert counter == 2
 
     os.remove(record_csv_sim.brain.config.record_file)
 
@@ -120,11 +128,14 @@ def test_file_change(record_csv_sim, temp_directory):
         id_idx = header.index('sim_id')
         custom_idx = header.index('bar.foo')
 
+        counter = 0
         for row in reader:
+            counter += 1
             if '270022238' in row:
                 assert id_idx == row.index('270022238')
             assert '23' in row
             assert custom_idx == row.index('23')
+        assert counter == 2
 
     record_csv_sim.writer.close()
     record_csv_sim.close()
@@ -152,6 +163,9 @@ def test_predict_mode_record(record_csv_predict, temp_directory):
             header = next(reader)
 
         assert 'sim_id' in header
+
+        row_count = sum(1 for row in reader)
+        assert row_count == 67
 
     record_csv_predict.writer.close()
     record_csv_predict.close()

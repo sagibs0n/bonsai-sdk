@@ -434,4 +434,8 @@ class Simulator_WS(object):
         elif isinstance(event, UnknownEvent):
             log.event("No Operation")
 
+        if isinstance(event, EpisodeStartEvent) or \
+            isinstance(event, SimulateEvent):
+            self._sim.flush_record()
+
         return True

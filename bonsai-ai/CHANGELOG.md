@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.3
+- #10584: Bug fix for sdk writer outputting all null rows
+- Changes as a result of static type checking
+
 ## 2.1.2
 - #10599: Fix pongs
 - #10268: Metrics + status + sample_rate API in bonsai_ai.Brain

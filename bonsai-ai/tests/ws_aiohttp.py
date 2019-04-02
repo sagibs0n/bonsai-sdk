@@ -11,6 +11,7 @@ from aiohttp import web, WSMsgType, WSCloseCode, EofStream
 import weakref
 import os
 import async_timeout
+from typing import Any, cast
 
 
 def count_me(fnc):
@@ -238,9 +239,11 @@ class BonsaiWS:
                         return ws
 
                     if self._EOFSTREAM:
-                        await ws.send_bytes(EofStream())
+                        # Intentionally send a bad parameter
+                        await ws.send_bytes(cast(Any, EofStream()))
                     elif self._ERROR_MSG:
-                        await ws.send_bytes('foo')
+                        # Intentionally send a bad parameter
+                        await ws.send_bytes(cast(Any, 'foo'))
                     else:
                         # dict->json->Message->binary
                         msg_dict = self._message_data[mtype]

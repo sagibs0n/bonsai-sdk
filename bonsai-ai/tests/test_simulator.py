@@ -7,6 +7,7 @@ from conftest import CartSim
 import time
 
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
+from typing import Any, cast
 
 try:
     from unittest.mock import Mock
@@ -122,7 +123,8 @@ def test_sim_predict_flag(predict_sim):
 
 def test_brain_create_with_invalid_args():
     try:
-        sim = CartSim()
+        # Intentionally fail to pass parameters
+        sim = cast(Any, CartSim)()
     except TypeError as e:
         return
 

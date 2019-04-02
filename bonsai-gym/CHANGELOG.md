@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.11
+- Changes as a result of static type checking
+
 ## 2.0.10
 - Update setup.py requirements and requirements.txt
 

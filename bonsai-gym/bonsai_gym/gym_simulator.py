@@ -26,8 +26,8 @@ class GymSimulator(Simulator):
         an `iteration_limit` Integer which will be used to set the
         maximum number of iterations per episode.
     """
-    simulator_name = None    # name of the simulation in the inkling file
-    environment_name = None  # name of the OpenAI Gym environment
+    simulator_name = ''    # name of the simulation in the inkling file
+    environment_name = ''  # name of the OpenAI Gym environment
 
     def __init__(self, brain, iteration_limit=0, skip_frame=1):
         """ initialize the GymSimulator with a bonsai.Config,
