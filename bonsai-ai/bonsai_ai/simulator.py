@@ -1,6 +1,4 @@
 # Copyright (C) 2018 Bonsai, Inc.
-
-import abc
 from datetime import datetime
 from time import time
 
@@ -104,7 +102,6 @@ class Simulator(object):
             continue
 
     """
-    __metaclass__ = abc.ABCMeta
 
     WRITERS = {
         '.json': JSONWriter,
@@ -182,7 +179,6 @@ class Simulator(object):
         """ Iterations per second. """
         return int(self._iteration_rate.rate)
 
-    @abc.abstractmethod
     def episode_start(self, episode_config):
         """
         Called at the start of each new episode. This callback passes in a
@@ -223,9 +219,9 @@ class Simulator(object):
                 }
                 return initial
         """
-        return {}  # initial_state
+        raise NotImplementedError(
+            'Abstract method episode_start() has not been implemented')
 
-    @abc.abstractmethod
     def simulate(self, action):
         """
         This callback steps the simulation forward by a single step.
@@ -271,7 +267,8 @@ class Simulator(object):
                 }
                 return (state, reward, terminal)
         """
-        return {}  # state, reward, terminal
+        raise NotImplementedError(
+            'Abstract method simulate() has not been implemented')
 
     def episode_finish(self):
         """

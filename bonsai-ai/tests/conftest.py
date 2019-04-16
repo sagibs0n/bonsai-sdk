@@ -21,6 +21,7 @@ except ImportError:
 
 
 from bonsai_ai import Simulator, Brain, Config, Luminance, Predictor
+from bonsai_ai.brain_api import BrainAPI
 from ws_aiohttp import open_bonsai_ws
 
 
@@ -160,7 +161,7 @@ class SequencingSim(Simulator):
         return True
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def mock_get(monkeypatch, request):
     def _get(*args, **kwargs):
         response = cast(Any, Mock())
@@ -168,7 +169,7 @@ def mock_get(monkeypatch, request):
                      'state': 'In Progress'}
         response.json.return_value = test_json
         return response
-    monkeypatch.setattr(requests, 'get', _get)
+    monkeypatch.setattr(requests.Session, 'get', _get)
 
 
 @pytest.fixture
@@ -179,7 +180,7 @@ def v2_get(monkeypatch):
                      'state': 'Stopped'}
         response.json.return_value = test_json
         return response
-    monkeypatch.setattr(requests, 'get', _get)
+    monkeypatch.setattr(requests.Session, 'get', _get)
 
 
 @pytest.fixture
@@ -195,16 +196,20 @@ def request_errors(request, monkeypatch):
         response.raise_for_status = Mock(
             side_effect=requests.exceptions.HTTPError(503))
         response.json = Mock(side_effect=ValueError)
-    def _get(*args, **kwargs):
+
+    def _request_error(*args, **kwargs):
         if error:
             raise error
         else:
             return response
-    monkeypatch.setattr(requests, 'get', _get)
+
+    monkeypatch.setattr(requests.Session, 'get', _request_error)
+    monkeypatch.setattr(requests.Session, 'put', _request_error)
+    monkeypatch.setattr(requests.Session, 'delete', _request_error)
 
 
 @pytest.fixture
-def blank_brain():
+def blank_brain(mock_get):
     config = Config([__name__])
     return Brain(config)
 
@@ -460,6 +465,16 @@ def luminance_sim(train_config):
     return sim
 
 
+@pytest.fixture
+def brain_api(train_config):
+    api = BrainAPI(
+        access_key=train_config.accesskey,
+        username=train_config.username,
+        api_url=train_config.url
+    )
+    return api
+
+
 def pytest_addoption(parser):
     parser.addoption("--protocol", action="store",
                      help="Path to message JSON")
@@ -508,7 +523,7 @@ def temp_dot_bonsai():
     yield
 
     os.environ["HOME"] = home_dir
-    rmtree(temp_dir)
+    rmtree(cast(str, temp_dir))
 
 
 @pytest.yield_fixture()
@@ -518,7 +533,7 @@ def temp_directory():
     os.chdir(temp_dir)
     yield
     os.chdir(cur_dir)
-    rmtree(temp_dir)
+    rmtree(cast(str, temp_dir))
 
 
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):

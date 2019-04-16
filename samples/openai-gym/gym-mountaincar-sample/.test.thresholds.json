@@ -1,7 +1,7 @@
 {
     "executable": "mountaincar_simulator.py",
     "prediction": {
-        "episodes": 1000,
+        "episodes": 100,
         "mean": -40
     }
 }

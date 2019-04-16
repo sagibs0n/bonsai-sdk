@@ -3,7 +3,7 @@ inkling "2.0"
 using Number
 experiment {
     num_workers: "3",
-    env_runners_per_sampler: "10"
+    env_runners_per_sampler: "2"
 }
 
 type GameState {
@@ -28,7 +28,7 @@ simulator CartpoleSimulator(action: Action, config: CartPoleConfig): GameState {
 graph (input: GameState): Action {
     concept Balance(input): Action {
         experiment {
-            max_step_per_concept: "1000000"
+            random_seed: "42"
         }
         curriculum {
             source CartpoleSimulator

@@ -506,7 +506,7 @@ class Config(object):
 
     def _websocket_url(self):
         """ Converts api url to websocket url """
-        api_url = self.url
+        api_url = self.url or ''
         parsed_api_url = urlparse(api_url)
 
         if parsed_api_url.scheme == 'http':

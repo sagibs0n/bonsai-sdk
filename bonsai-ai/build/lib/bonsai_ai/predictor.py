@@ -56,7 +56,7 @@ class Predictor(Simulator):
         """
         super(Predictor, self).__init__(brain, name)
 
-        self._state = None
+        self._state = {}
 
     def __enter__(self):
         return self
@@ -72,16 +72,16 @@ class Predictor(Simulator):
         return self._state
 
     def simulate(self, action):
-        self.action_to_client = action
-
         return self._state, 0, False
 
     def get_action(self, state):
         """ Returns an action for a given state """
+        if state is not None:
+            self._state = state
+
         if self._impl._prev_message_type == ServerToSimulator.UNKNOWN:
             self.run()
 
-        self._state = state
 
         self.run()
 

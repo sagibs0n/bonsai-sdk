@@ -28,3 +28,13 @@ def test_enable_all(capsys, logging_config):
     assert out == ''
     assert err.find("[spam] eggs\n") >= 0
     log.set_enable_all(False)
+
+
+def test_disable_domain(capsys, logging_config):
+    log = Logger()
+    log.set_enabled('spam', False)
+    assert log._enabled_keys['spam'] == False
+    log.spam('eggs')
+    out, err = capsys.readouterr()
+    assert out == ''
+    assert err == ''

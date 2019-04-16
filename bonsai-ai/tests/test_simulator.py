@@ -7,6 +7,7 @@ from conftest import CartSim
 import time
 
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
+from bonsai_ai import Brain, Simulator
 from typing import Any, cast
 
 try:
@@ -128,6 +129,34 @@ def test_brain_create_with_invalid_args():
     except TypeError as e:
         return
 
+    assert False, "XFAIL"
+
+
+def test_run_subclass_without_episode_start(train_config):
+    class SubClass(Simulator):
+        def simulate(self, action):
+            return
+    try:
+        brain = Brain(train_config)
+        sim = SubClass(brain, 'cartpole_simulator')
+        for _ in range(5):
+            sim.run()
+    except NotImplementedError:
+        return
+    assert False, "XFAIL"
+
+
+def test_run_subclass_without_simulate(train_config):
+    class SubClass(Simulator):
+        def episode_start(self, action):
+            return
+    try:
+        brain = Brain(train_config)
+        sim = SubClass(brain, 'cartpole_simulator')
+        for _ in range(5):
+            sim.run()
+    except NotImplementedError:
+        return
     assert False, "XFAIL"
 
 

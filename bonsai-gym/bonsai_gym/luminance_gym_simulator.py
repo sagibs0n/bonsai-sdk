@@ -5,6 +5,8 @@ from bonsai_gym import GymSimulator
 class LuminanceGymSimulator(GymSimulator):
     # Downsample rate. Subclasses can override.
     downsample = 1
+    env_width = None
+    env_height = None
 
     def episode_finish(self):
         print("Episode {} reward: {}".format(

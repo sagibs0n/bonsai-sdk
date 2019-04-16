@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.4
+- #10731: Added internal BrainAPI class
+- #10855: Added Delete and Sims Info API to BrainAPI
+- #10739: Refactor Brain to use new BrainAPI class
+- #10659: Logs can be programatically disabled using bonsai_ai.logger.Logger.set_enable
+
 ## 2.1.3
 - #10584: Bug fix for sdk writer outputting all null rows
 - Changes as a result of static type checking

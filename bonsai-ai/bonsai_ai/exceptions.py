@@ -32,3 +32,6 @@ class BonsaiServerError(Exception):
 
 class SimStateError(Exception):
     pass
+
+class UsageError(Exception):
+    pass

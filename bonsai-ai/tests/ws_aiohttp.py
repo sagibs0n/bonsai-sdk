@@ -23,13 +23,78 @@ def count_me(fnc):
     return increment
 
 
-BRAIN_STATUS = {'versions': [{'version': 3}, {'version': 2}],
-                'state': 'Not Started'}
+BRAIN_INFO = {
+    'versions': [{'url': '/v1/alice/cartpole/1', 'version': 1}],
+    'description': 'pole',
+    'name': 'cartpole',
+    'user': 'alice'
+}
+
+BRAIN_STATUS = {
+    "concepts": [
+        {
+            "algorithm": "DQN",
+            "concept_name": "Balance",
+            "is_estimator": False,
+            "name": "Balance",
+            "objective_name": "???",
+            "state": "In Progress",
+            "training_end": "",
+            "training_start": "2019-04-02T18:01:40Z"
+        }
+    ],
+    "episode": 0,
+    "episode_length": 0,
+    "iteration": None,
+    "models": 1,
+    "name": "safsaf",
+    "objective_name": "Balance_objective",
+    "objective_score": 0.0,
+    "simulator_loaded": None,
+    "simulator_manageable": True,
+    "simulators": [],
+    "state": "In Progress",
+    "test_episode": None,
+    "test_episode_length": None,
+    "test_objective_score": None,
+    "training_end": "",
+    "training_start": "2019-04-02T18:01:28.220000Z",
+    "user": "alice",
+    "version": 1,
+    "versions": [
+        {
+            "iterations": None,
+            "last_modified": "2019-04-02T18:01:40.872000Z",
+            "reward": None,
+            "version": 1
+        }
+    ]
+}
 
 SIMS = {"cartpole_simulator": {"inactive": [], "active": []},
         "random_simulator": {"inactive": [], "active": []}}
 
 USER_STATUS = {'brains': [{'name': "cartpole"}]}
+
+START_STOP_RESUME = {
+    "brain_url": "/v1/alice/cartpole/1",
+    "compiler_version": "2.0.0",
+    "manage_simulator": False,
+    "name": "cartpole",
+    "simulator_connect_url": "/v1/alice/cartpole/sims/ws",
+    "simulator_predictions_url": "/v1/admin/b1/latest/predictions/ws",
+    "user": "alice",
+    "version": "latest"
+}
+
+METRICS = {
+    "episode": 1,
+    "lesson": "balancing",
+    "value": 25,
+    "iteration": 1354,
+    "concept": "balance",
+    "time": "2017-11-10T06:37:11.712068096Z"
+}
 
 
 class BonsaiWS:
@@ -171,11 +236,35 @@ class BonsaiWS:
         self.reset_flags()
         self._ERROR_MSG = True
         return await self.handle_msg(request)
-  
+
     async def handle_pong(self, request):
         self.reset_flags()
         self._PONG = True
         return await self.handle_msg(request)
+
+    async def start_stop_resume(self, request):
+        self.reset_flags()
+        return web.json_response(START_STOP_RESUME)
+
+    async def metrics(self, request):
+        self.reset_flags()
+        return web.json_response(METRICS)
+
+    async def status(self, request):
+        self.reset_flags()
+        return web.json_response(BRAIN_STATUS)
+
+    async def info(self, request):
+        self.reset_flags()
+        return web.json_response(BRAIN_INFO)
+    
+    async def delete_brain(self, request):
+        self.reset_flags()
+        return web.json_response({})
+
+    async def sims_info(self, request):
+        self.reset_flags()
+        return web.json_response(SIMS)
 
     @count_me
     async def handle_msg(self, request):
@@ -288,6 +377,26 @@ def open_bonsai_ws(protocol):
                        bonsai_ws.error_msg)
     app.router.add_get('/v1/pong/cartpole/sims/ws',
                        bonsai_ws.handle_pong)
+    app.router.add_get('/v1/alice/cartpole',
+                       bonsai_ws.info)
+    app.router.add_get('/v1/alice/cartpole/status',
+                       bonsai_ws.status)
+    app.router.add_get('/v1/alice/cartpole/sims',
+                       bonsai_ws.sims_info)
+    app.router.add_get('/v1/alice/cartpole/latest/metrics/episode_value',
+                       bonsai_ws.metrics)
+    app.router.add_get('/v1/alice/cartpole/latest/metrics/test_pass_value',
+                       bonsai_ws.metrics)
+    app.router.add_get('/v1/alice/cartpole/latest/metrics/iterations',
+                       bonsai_ws.metrics)
+    app.router.add_put('/v1/alice/cartpole/train',
+                       bonsai_ws.start_stop_resume)
+    app.router.add_put('/v1/alice/cartpole/stop',
+                       bonsai_ws.start_stop_resume)
+    app.router.add_put('/v1/alice/cartpole/latest/resume',
+                       bonsai_ws.start_stop_resume)
+    app.router.add_delete('/v1/alice/cartpole',
+                       bonsai_ws.delete_brain)
     app.router.add_patch('/reset',
                          bonsai_ws.reset)
     app.router.add_patch('/luminance',

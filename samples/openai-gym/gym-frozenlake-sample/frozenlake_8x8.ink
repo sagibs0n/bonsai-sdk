@@ -4,7 +4,8 @@ using Number
 
 experiment {
     random_seed: "20",
-    env_runners_per_remote: "3"
+    num_workers: "3",
+    env_runners_per_sampler: "2"
 }
 
 type GameState {

@@ -40,21 +40,22 @@ class Logger:
             self.__dict__ = self._impl
 
     def __getattr__(self, attr):
-        if self._enable_all or attr in self._enabled_keys:
+        if self._enable_all or self._enabled_keys.get(attr, False):
             ts = datetime.fromtimestamp(time()).strftime("%Y-%m-%d %H:%M:%S")
             return lambda msg: \
                 sys.stderr.write("[{0}][{1}] {2}\n".format(ts, attr, msg))
         else:
             return lambda msg: None
 
-    def set_enabled(self, key):
+    def set_enabled(self, key, enable=True):
         """
-        Enable the given logging domain.
+        Enable or disable the given logging domain.
 
         Arguments:
             key: `string`
+            enable: `bool`
         """
-        self.__class__._impl['_enabled_keys'][key] = True
+        self.__class__._impl['_enabled_keys'][key] = enable
 
     def set_enable_all(self, enable_all):
         """

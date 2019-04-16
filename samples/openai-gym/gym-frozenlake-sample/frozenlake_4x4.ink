@@ -5,7 +5,7 @@ using Number
 experiment {
     random_seed: "20",
     num_workers: "3",
-    env_runners_per_sampler: "10"
+    env_runners_per_sampler: "2"
 }
 
 type GameState {

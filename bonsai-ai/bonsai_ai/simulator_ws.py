@@ -196,7 +196,7 @@ class Simulator_WS(object):
             step.prediction = p_data.dynamic_prediction
             self._sim_steps.append(step)
 
-            # Convert server msg to action dict and saves it for predictor
+            # Convert server msg to action dict and save it for predictor
             self._cache_action_for_predictor(step.prediction)
         self._step_iter = iter(self._sim_steps)
 
@@ -323,6 +323,8 @@ class Simulator_WS(object):
 
     def _process_sim_step(self):
         try:
+            if not self._step_iter:
+                return None
             event = None
             step = next(self._step_iter)
             step.state = self._new_state_message()
