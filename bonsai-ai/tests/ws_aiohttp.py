@@ -96,6 +96,21 @@ METRICS = {
     "time": "2017-11-10T06:37:11.712068096Z"
 }
 
+CREATE_PUSH = {
+    "description": "",
+    "files": [
+        "cartpole.ink"
+    ],
+    "ink_compile": {
+        "compiler_version": "2.0.0",
+        "errors": [],
+        "inkling_version": "2.0",
+        "success": True,
+        "warnings": []
+    },
+    "name": "cartpole",
+    "url": "/v1/alice/cartpole"
+}
 
 class BonsaiWS:
     _PROTOCOL_FILE = "proto_bin/cartpole_wire.json"
@@ -186,17 +201,19 @@ class BonsaiWS:
 
     async def load_cartpole(self, request):
         p_file = "{}/proto_bin/cartpole_wire.json".format(
-                os.path.dirname(__file__))
+            os.path.dirname(__file__))
         with open(p_file, 'r') as f:
             j = f.read()
             self._message_data = json.loads(j)
+        return web.Response()
 
     async def load_luminance(self, request):
         p_file = "{}/proto_bin/luminance_wire.json".format(
-                os.path.dirname(__file__))
+            os.path.dirname(__file__))
         with open(p_file, 'r') as f:
             j = f.read()
             self._message_data = json.loads(j)
+        return web.Response()
 
     async def reset(self, request):
         self._count = 0
@@ -257,7 +274,7 @@ class BonsaiWS:
     async def info(self, request):
         self.reset_flags()
         return web.json_response(BRAIN_INFO)
-    
+
     async def delete_brain(self, request):
         self.reset_flags()
         return web.json_response({})
@@ -265,6 +282,14 @@ class BonsaiWS:
     async def sims_info(self, request):
         self.reset_flags()
         return web.json_response(SIMS)
+    
+    async def create_push(self, request):
+        self.reset_flags()
+        return web.json_response(CREATE_PUSH)
+
+    async def root(self, request):
+        self.reset_flags()
+        return web.json_response({})
 
     @count_me
     async def handle_msg(self, request):
@@ -361,6 +386,7 @@ def open_bonsai_ws(protocol):
     app['websockets'] = weakref.WeakSet()
     app.on_shutdown.append(bonsai_ws.on_shutdown)
     # TODO(oren.leiman): add the BRAIN request handler
+    app.router.add_get('/', bonsai_ws.root)
     app.router.add_get('/v1/alice/cartpole/sims/ws',
                        bonsai_ws.train)
     app.router.add_get('/v1/alice/cartpole/4/predictions/ws',
@@ -395,8 +421,12 @@ def open_bonsai_ws(protocol):
                        bonsai_ws.start_stop_resume)
     app.router.add_put('/v1/alice/cartpole/latest/resume',
                        bonsai_ws.start_stop_resume)
+    app.router.add_put('/v1/alice/cartpole',
+                       bonsai_ws.create_push)
+    app.router.add_post('/v1/alice/brains',
+                        bonsai_ws.create_push)
     app.router.add_delete('/v1/alice/cartpole',
-                       bonsai_ws.delete_brain)
+                          bonsai_ws.delete_brain)
     app.router.add_patch('/reset',
                          bonsai_ws.reset)
     app.router.add_patch('/luminance',

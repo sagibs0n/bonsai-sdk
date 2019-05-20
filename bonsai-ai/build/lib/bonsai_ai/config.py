@@ -85,13 +85,6 @@ _RETRY_TIMEOUT_HELP = \
     reconnect to the backend. 0 represents do not reconnect. -1 represents
     retry forever. The default is set to 300 seconds (5 minutes).
     """
-_PONG_INTERVAL_HELP = \
-    """
-    The time interval in seconds that reflects how often the client will
-    send keep-alive pongs to the server. The pong-interval must be equal to 0
-    or greater than or equal to 1 and less than 240 seconds with 0 indicating
-    that the client should not PONG. The default setting is 15s.
-    """
 _NETWORK_TIMEOUT_HELP = \
     """
     Time in seconds to wait before retrying network connections.
@@ -169,7 +162,6 @@ class Config(object):
         self.brain_version = 0
         self._proxy = None
         self._retry_timeout_seconds = 300
-        self._pong_interval_seconds = 15.0
         self._network_timeout_seconds = 60
 
         self.verbose = False
@@ -203,7 +195,6 @@ class Config(object):
             '\"brain_version\": \"{self.brain_version!r}\", ' \
             '\"proxy\": \"{self.proxy!r}\", ' \
             '\"retry_timeout\": \"{self.retry_timeout!r}\", ' \
-            '\"pong_interval\": \"{self.pong_interval!r}\", ' \
             '\"network_timeout\": \"{self.network_timeout!r}\" ' \
             '}}'.format(self=self)
 
@@ -255,20 +246,6 @@ class Config(object):
             raise ValueError(
                 'Retry timeout must be a positive integer, 0, or -1.')
         self._retry_timeout_seconds = value
-
-    @property
-    def pong_interval(self):
-        return self._pong_interval_seconds
-
-    @pong_interval.setter
-    def pong_interval(self, value):
-        value = float(value)
-        if value == 0 or (value >= 1 and value < 240):
-            self._pong_interval_seconds = value
-        else:
-            raise ValueError(
-                'Pong interval must be equal to 0 (No pongs) or '
-                'greater than 1 second and less than 240 seconds.')
 
     @property
     def network_timeout(self):
@@ -400,8 +377,6 @@ class Config(object):
                             help=_RECORD_HELP)
         parser.add_argument('--retry-timeout', type=int,
                             help=_RETRY_TIMEOUT_HELP)
-        parser.add_argument('--pong-interval', type=float,
-                            help=_PONG_INTERVAL_HELP)
         parser.add_argument('--network-timeout', type=int,
                             help=_NETWORK_TIMEOUT_HELP)
 
@@ -441,9 +416,6 @@ class Config(object):
 
         if args.retry_timeout is not None:
             self.retry_timeout = args.retry_timeout
-
-        if args.pong_interval is not None:
-            self.pong_interval = args.pong_interval
 
         if args.network_timeout is not None:
             self.network_timeout = args.network_timeout
@@ -501,8 +473,12 @@ class Config(object):
     def _write_dot_bonsai(self):
         """ Writes to .bonsai in users home directory """
         config_path = join(expanduser('~'), _DOT_BONSAI)
-        with open(config_path, 'w') as f:
-            self._config_parser.write(f)
+        try:
+            with open(config_path, 'w') as f:
+                self._config_parser.write(f)
+        except (FileNotFoundError, PermissionError):
+            log.info('WARNING: Unable to write .bonsai to {}'.format(
+                config_path))
 
     def _websocket_url(self):
         """ Converts api url to websocket url """

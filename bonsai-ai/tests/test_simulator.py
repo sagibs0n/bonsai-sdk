@@ -2,12 +2,16 @@
 
 # pylint: disable=missing-docstring
 # pylint: disable=too-many-function-args
+import os
 import pytest
+import sys
 from conftest import CartSim
 import time
+from requests.exceptions import ConnectionError
+from aiohttp.client_exceptions import ClientProxyConnectionError
 
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
-from bonsai_ai import Brain, Simulator
+from bonsai_ai import Config, Brain, Simulator
 from typing import Any, cast
 
 try:
@@ -117,6 +121,30 @@ def test_reset_rate_counter(train_sim, monkeypatch):
     train_sim.close()
 
 
+@pytest.mark.skipif(sys.platform.startswith('win'), reason='Win not supported')
+@pytest.mark.skipif(sys.platform == 'darwin', reason='OSX not supported')
+def test_train_proxy(train_sim_proxy_pair):
+    train_sim_proxy = train_sim_proxy_pair['sim']
+    assert train_sim_proxy.run() is True
+    assert train_sim_proxy._impl._prev_message_type == \
+        ServerToSimulator.ACKNOWLEDGE_REGISTER
+
+    train_sim_proxy.close()
+
+    proxy_log = os.path.join(train_sim_proxy_pair['log_dir'], 'access.log')
+    with open(proxy_log, 'r') as f:
+        log_data = f.read()
+        entry = 'GET ws://127.0.0.1:9000/v1/alice/cartpole/sims/ws'
+        assert entry in log_data
+
+
+@pytest.mark.skipif(sys.platform.startswith('win'), reason='Win not supported')
+@pytest.mark.skipif(sys.platform == 'darwin', reason='OSX not supported')
+def test_train_bad_proxy(train_sim_bad_proxy):
+    with pytest.raises(ClientProxyConnectionError):
+        train_sim_bad_proxy.run()
+
+
 def test_sim_predict_flag(predict_sim):
     assert predict_sim.predict is True
     predict_sim.close()
@@ -158,6 +186,29 @@ def test_run_subclass_without_simulate(train_config):
     except NotImplementedError:
         return
     assert False, "XFAIL"
+
+
+def test_run_simulator_with_no_dot_bonsai_or_cl_args(
+        temp_home_directory_read_only, capsys):
+    config = Config()
+    brain = Brain(config)
+    sim = Simulator(brain, 'sim')
+    sim.run()
+    captured = capsys.readouterr()
+    assert 'Configuration is invalid' in captured.err
+
+
+def test_run_simulator_no_dot_bonsai(
+        train_sim, temp_home_directory_read_only):
+    assert train_sim.run() is True
+
+
+def test_access_sim_id(train_sim):
+    assert train_sim.sim_id == ''
+    assert train_sim.run() is True
+    assert train_sim.sim_id == '270022238'
+    train_sim.close()
+    assert train_sim.sim_id == '270022238'
 
 
 if __name__ == '__main__':

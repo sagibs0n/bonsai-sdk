@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.12
+- Pyright bug fixes
+
 ## 2.0.11
 - Changes as a result of static type checking
 

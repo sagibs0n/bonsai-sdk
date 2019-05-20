@@ -4,8 +4,8 @@ Tests for BrainAPI
 """
 import pytest
 from ws_aiohttp import START_STOP_RESUME, METRICS, BRAIN_STATUS, BRAIN_INFO, \
-     SIMS
-from bonsai_ai.exceptions import BonsaiServerError
+     SIMS, CREATE_PUSH
+from bonsai_ai.exceptions import BonsaiServerError, UsageError
 
 def test_brain_info(brain_api):
     assert brain_api.get_brain_info('cartpole') == BRAIN_INFO
@@ -36,6 +36,38 @@ def test_delete(brain_api):
 
 def test_sims_info(brain_api):
     assert brain_api.get_simulator_info('cartpole') == SIMS
+
+def test_create_brain_inkling_str(brain_api):
+    assert brain_api.create_brain('cartpole', ink_str='ink') == CREATE_PUSH
+
+def test_create_brain_inkling_file(brain_api, temp_directory):
+    with open('foo.ink', 'w') as f:
+        f.write('inkling')
+    assert brain_api.create_brain('cartpole', ink_file='foo.ink') == CREATE_PUSH
+
+def test_push_inkling_str(brain_api):
+    assert brain_api.push_inkling('cartpole', ink_str='ink') == CREATE_PUSH
+
+def test_push_inkling_file(brain_api, temp_directory):
+    with open('foo.ink', 'w') as f:
+        f.write('inkling')
+    assert brain_api.push_inkling('cartpole', ink_file='foo.ink') == CREATE_PUSH
+
+def test_create_brain_raises_error_if_invalid_path(brain_api):
+    try:
+        assert brain_api.create_brain('cartpole', ink_file='invalid/path/')
+    except UsageError:
+        return
+    else:
+        assert False
+
+def test_push_raises_error_if_no_inkling(brain_api):
+    try:
+        brain_api.push_inkling('cartpole')
+    except UsageError:
+        return
+    else:
+        assert False
 
 @pytest.mark.parametrize('request_errors', ['connection'], indirect=True)
 def test_get_connection_error(request_errors, brain_api):
@@ -92,14 +124,32 @@ def test_put_http_error(request_errors, brain_api):
     else:
         assert False
 
-def test_post_connection_error():
-    pass
+@pytest.mark.parametrize('request_errors', ['connection'], indirect=True)
+def test_post_connection_error(request_errors, brain_api):
+    try:
+        brain_api.create_brain('cartpole', ink_str='inkling')
+    except BonsaiServerError as e:
+        assert str(e).find('Unable to connect') >= 0
+    else:
+        assert False
 
-def test_post_timeout_error():
-    pass
+@pytest.mark.parametrize('request_errors', ['timeout'], indirect=True)
+def test_post_timeout_error(request_errors, brain_api):
+    try:
+        brain_api.create_brain('cartpole', ink_str='inkling')
+    except BonsaiServerError as e:
+        assert str(e).find('timed out') >= 0
+    else:
+        assert False
 
-def test_post_http_error():
-    pass
+@pytest.mark.parametrize('request_errors', ['http'], indirect=True)
+def test_post_http_error(request_errors, brain_api):
+    try:
+        brain_api.create_brain('cartpole', ink_str='inkling')
+    except BonsaiServerError as e:
+        assert str(e).find('Request failed') >= 0
+    else:
+        assert False
 
 @pytest.mark.parametrize('request_errors', ['connection'], indirect=True)
 def test_delete_connection_error(request_errors, brain_api):

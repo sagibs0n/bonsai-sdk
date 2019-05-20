@@ -3,15 +3,20 @@ Copyright (C) 2019 Microsoft
 """
 import functools
 import json
+import os
 
 from urllib.parse import urljoin
 from urllib.request import getproxies
 
 import requests
+from requests.packages.urllib3.fields import RequestField
+from requests.packages.urllib3.filepost import encode_multipart_formdata
 
 from bonsai_ai.exceptions import BonsaiServerError, UsageError
 from bonsai_ai.common.utils import get_user_info
 from bonsai_ai.logger import Logger
+
+from typing import Optional
 
 _GET_INFO_URL_PATH_TEMPLATE = "/v1/{username}/{brain}"
 _STATUS_URL_PATH_TEMPLATE = "/v1/{username}/{brain}/status"
@@ -19,6 +24,8 @@ _SIMS_INFO_URL_PATH_TEMPLATE = "/v1/{username}/{brain}/sims"
 _TRAIN_URL_PATH_TEMPLATE = "/v1/{username}/{brain}/train"
 _STOP_URL_PATH_TEMPLATE = "/v1/{username}/{brain}/stop"
 _RESUME_URL_PATH_TEMPLATE = "/v1/{username}/{brain}/{version}/resume"
+_CREATE_BRAIN_URL_PATH_TEMPLATE = "/v1/{username}/brains"
+_EDIT_BRAIN_URL_PATH_TEMPLATE = "/v1/{username}/{brain}"
 _DELETE_BRAIN_URL_PATH_TEMPLATE = "/v1/{username}/{brain}"
 _TEST_METRICS_URL_PATH_TEMPLATE = \
     "/v1/{username}/{brain}/{version}/metrics/test_pass_value"
@@ -38,15 +45,17 @@ def _handle_connection_and_timeout_errors(func):
     :param func: the function being decorated
     """
     @functools.wraps(func)
-    def _handler(self, url, *args, **kwargs):
+    def _handler(self, http_method, url, *args, **kwargs):
         try:
-            return func(self, url, *args, **kwargs)
+            return func(self, http_method, url, *args, **kwargs)
         except requests.exceptions.ConnectionError:
             message = \
-                "Request failed. Unable to connect to domain: {}".format(url)
+                "{} Request failed. Unable to connect to domain: " \
+                    "{}".format(http_method, url)
             raise BonsaiServerError(message)
         except requests.exceptions.Timeout:
-            message = "Request failed. Request to {} timed out".format(url)
+            message = "{} Request failed. Request to {} timed out".format(
+                http_method, url)
             raise BonsaiServerError(message)
     return _handler
 
@@ -123,6 +132,73 @@ class BrainAPI():
         url = urljoin(self._api_url, url_path)
         return self._http_request('PUT', url)
 
+    def create_brain(self, brain_name, ink_file=None, ink_str=None):
+        """
+        Creates a brain. A path to an inkling file or a raw inkling string
+        can be passed in as arguments to the function. If neither are present,
+        a blank BRAIN is created. The inkling file is prioritized over the 
+        string.
+
+        param brain_name: string
+            name of brain
+        param inkling_file: string
+            path to inkling file
+        param inkling_str: string
+            raw inkling string
+        """
+        url_path = _CREATE_BRAIN_URL_PATH_TEMPLATE.format(
+            username=self._username
+        )
+        url = urljoin(self._api_url, url_path)
+
+        if ink_file:
+            ink_name, ink_data = self._handle_inkling_file(ink_file)
+            json, file_payload = self._generate_payload(
+                brain_name, ink_data=ink_data, ink_name=ink_name)
+        elif ink_str:
+            json, file_payload = self._generate_payload(brain_name, ink_str)
+        else:
+            json, file_payload = self._generate_payload(brain_name)
+
+        header, body = self._compose_multipart(json, file_payload)
+        self._session.headers.update(header)
+
+        return self._http_request('POST', url, body)
+
+    def push_inkling(self, brain_name, ink_file: Optional[str]=None, ink_str=None):
+        """
+        Pushes inkling to server. A path to an inkling file or a raw inkling
+        string can be passed in as arguments to the function. If neither are 
+        present an error is raised to the caller.
+
+        param brain_name: string
+            name of brain
+        param inkling_file: string
+            path to inkling file
+        param inkling_str: string
+            raw inkling string
+        """
+        url_path = _EDIT_BRAIN_URL_PATH_TEMPLATE.format(
+            username=self._username,
+            brain=brain_name
+        )
+        url = urljoin(self._api_url, url_path)
+
+        if ink_file:
+            ink_name, ink_data = self._handle_inkling_file(ink_file)
+            json, file_payload = self._generate_payload(
+                brain_name, ink_data=ink_data, ink_name=ink_name)
+        elif ink_str:
+            json, file_payload = self._generate_payload(brain_name, ink_str)
+        else:
+            raise UsageError('Push_inkling requires an inkling file or'
+                             ' string to be passed in as an argument')
+
+        header, body = self._compose_multipart(json, file_payload)
+        self._session.headers.update(header)
+
+        return self._http_request('PUT', url, body)
+
     def training_episode_metrics(self, brain_name, version):
         url_path = _TRAIN_METRICS_URL_PATH_TEMPLATE.format(
             username=self._username,
@@ -166,11 +242,6 @@ class BrainAPI():
         param: data -> JSON Formatted Dictionary: json data to send with request
         """
 
-        if http_method not in self._http_methods:
-            raise UsageError(
-                'Pass in one of the following accepted http_methods\n' \
-                '{}'.format(self._http_methods))
-
         log.api('Sending {} request to {}'.format(http_method, url))
 
         if http_method == 'GET':
@@ -179,11 +250,13 @@ class BrainAPI():
 
         elif http_method == 'PUT':
             response = self._session.put(
-                url=url, json=data,
+                url=url, data=data,
                 allow_redirects=False, timeout=self._timeout)
 
         elif http_method == 'POST':
-            raise UsageError('NOT IMPLEMENTED YET')
+            response = self._session.post(
+                url=url,  data=data, allow_redirects=False, 
+                timeout=self._timeout)
 
         elif http_method == 'DELETE':
             response = self._session.delete(
@@ -195,7 +268,7 @@ class BrainAPI():
         try:
             response.raise_for_status()
             self._log_response(response)
-        except requests.exceptions.HTTPError:
+        except requests.exceptions.HTTPError as err:
             self._handle_http_error(response)
         return self._dict(response)
 
@@ -244,3 +317,79 @@ class BrainAPI():
 
         log.api("url: {} {}\n\tstatus: {}\n\tjson: {}".format(
             response.request.method, response.url, response.status_code, dump))
+
+    @staticmethod
+    def _handle_inkling_file(ink_file: str):
+        ink_path = os.path.expanduser(ink_file)
+        if os.path.exists(ink_path) and os.path.isfile(ink_path):
+            relpath = os.path.relpath(ink_path)
+            with open(ink_path, 'rb') as f:
+                ink_data = f.read()
+            return relpath, ink_data
+        else:
+            raise UsageError()
+    
+    @staticmethod
+    def _generate_payload(brain_name, ink_data=None, ink_name=None):
+        json = {
+            "name": brain_name,
+            "description": "",
+            "project_file": {
+                "name": "bonsai_brain.bproj",
+                "content": {
+                    "files": ['*.ink']
+                }
+            },
+            "project_accompanying_files": []
+        }
+
+        if ink_data and ink_name:
+            json['project_accompanying_files'] = [ink_name]
+            file_payload = {ink_name: ink_data}
+        elif ink_data:
+            json['project_accompanying_files'] = ['{}.ink'.format(brain_name)]
+            file_payload = {'{}.ink'.format(brain_name): ink_data}
+        else:
+            json["project_file"]["content"]["files"] = []
+            file_payload = {}
+        
+        return json, file_payload
+        
+    @staticmethod
+    def _compose_multipart(json_dict, filesdata):
+        """ Composes multipart/mixed request for create/edit brain.
+
+        The multipart message is constructed as 1st part application/json and
+        subsequent file part(s).
+
+        :param json: dictionary that will be json-encoded
+        :param filesdata: dict of <filename> -> <filedata>
+        """
+        # requests 1.13 does not have high-level support for multipart/mixed.
+        # Using lower-level modules to construct multipart/mixed per
+        # http://stackoverflow.com/questions/26299889/
+        # how-to-post-multipart-list-of-json-xml-files-using-python-requests
+        fields = []
+
+        # 1st part: application/json
+        rf = RequestField(name="project_data", data=json.dumps(json_dict))
+        rf.make_multipart(content_type='application/json')
+        fields.append(rf)
+
+        # Subsequent parts: file text
+        for filename, filedata in filesdata.items():
+            rf = RequestField(name=filename, data=filedata, filename=filename,
+                              headers={'Content-Length': len(filedata)})
+            rf.make_multipart(content_disposition='attachment',
+                              content_type="application/octet-stream")
+            fields.append(rf)
+
+        # Compose message
+        body, content_type = encode_multipart_formdata(fields)
+        # "multipart/form-data; boundary=.." -> "multipart/mixed; boundary=.."
+        content_type = content_type.replace("multipart/form-data",
+                                            "multipart/mixed",
+                                            1)
+        headers = {'Content-Type': content_type}
+
+        return (headers, body)

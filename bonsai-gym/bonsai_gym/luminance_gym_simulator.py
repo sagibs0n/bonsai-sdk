@@ -1,12 +1,12 @@
 from bonsai_ai import Luminance
-from bonsai_gym import GymSimulator
+from bonsai_gym.gym_simulator import GymSimulator
 
 
 class LuminanceGymSimulator(GymSimulator):
     # Downsample rate. Subclasses can override.
     downsample = 1
-    env_width = None
-    env_height = None
+    env_width = 1
+    env_height = 1
 
     def episode_finish(self):
         print("Episode {} reward: {}".format(

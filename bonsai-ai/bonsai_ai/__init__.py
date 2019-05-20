@@ -18,6 +18,7 @@ Classes:
     Luminance: A class for representing Luminance data in Inkling schemas.
 """
 from .brain import Brain
+from .brain_controller import BrainController
 from .config import Config
 from .simulator import Simulator
 from .inkling_types import Luminance

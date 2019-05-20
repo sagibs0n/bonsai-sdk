@@ -25,6 +25,25 @@ def test_predictor(predictor, bonsai_ws):
             ServerToSimulator.PREDICTION
 
 
+def test_predictor_null_state(predictor, bonsai_ws):
+    state = {'position': 0,
+             'velocity': 0,
+             'angle':    0,
+             'rotation': 0}
+
+    with predictor:
+        assert predictor._state is not None
+        assert predictor._impl._prev_message_type == \
+            ServerToSimulator.UNKNOWN
+
+        try:
+            action = predictor.get_action(None)
+        except SimStateError as e:
+            return
+    
+    assert False, "XFAIL"
+
+
 def test_predictor_invalid_state(predictor, bonsai_ws):
     try: 
         state = {'FOO': 0,

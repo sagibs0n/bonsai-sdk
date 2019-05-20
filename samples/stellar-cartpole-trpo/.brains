@@ -1,1 +1,1 @@
-{"brains": [{"name": "cartpole1", "default": false}, {"name": "bart", "default": false}, {"name": "t2", "default": false}, {"name": "foo", "default": true}]}
+{"brains": [{"name": "star-cart", "default": true}]}

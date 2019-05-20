@@ -9,7 +9,7 @@ def test_pong_sim(pong_sim):
     captures stdout output and checks that a received
     message was printed
     """
-    pong_sim.brain.config._pong_interval = 1.0
+    pong_sim._impl._sim_connection._PING_PONG_INTERVAL = 1.0
     counter = 0
     while pong_sim.run():
         time.sleep(.1)

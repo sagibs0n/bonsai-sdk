@@ -1,4 +1,4 @@
-from bonsai_ai import Simulator
+from bonsai_ai.simulator import Simulator
 from bonsai_ai.logger import Logger
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
 

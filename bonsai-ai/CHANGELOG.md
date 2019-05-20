@@ -1,10 +1,19 @@
 # Changelog
 
+## 2.1.5
+- #10269: Create and Push Inkling added to BrainAPI
+- #10770: Config will not break sims when users have no permissions to write to HOME
+- #11035: Update bonsai-ai to reflect new SLA
+- #11096: Cleanup Simulator resources on SIGINT
+- #10715: Added BrainController class
+- #11352,#11281: Add Simulator.sim_id
+
 ## 2.1.4
 - #10731: Added internal BrainAPI class
 - #10855: Added Delete and Sims Info API to BrainAPI
 - #10739: Refactor Brain to use new BrainAPI class
 - #10659: Logs can be programatically disabled using bonsai_ai.logger.Logger.set_enable
+- #10999: Predictor bug fix initial null state
 
 ## 2.1.3
 - #10584: Bug fix for sdk writer outputting all null rows

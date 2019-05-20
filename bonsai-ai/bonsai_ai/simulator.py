@@ -294,6 +294,19 @@ class Simulator(object):
         if self.writer is not None:
             return self.writer.record_file
 
+    @property
+    def sim_id(self):
+        """
+        ID for an active Simulator connection.
+
+        Returns "" if this Simulator not yet connected to the MT service.
+
+        Once a connection is made, this property persists until
+        the next successful connection by this object.
+        """
+        id = self._impl._sim_id
+        return str(id) if id else ''
+
     @record_file.setter
     def record_file(self, new_file):
         if self.writer is not None:
@@ -416,6 +429,8 @@ class Simulator(object):
 
     def close(self):
         """ Closes websocket Connection """
+        if self._impl._receive_handle:
+            self._impl._receive_handle.cancel()
         self._ioloop.run_until_complete(self._impl._sim_connection.close())
 
     def get_next_event(self):

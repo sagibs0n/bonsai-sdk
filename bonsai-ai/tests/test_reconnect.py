@@ -96,23 +96,6 @@ def test_sim_connection_constructor(train_sim):
     assert sim_connection._timeout is None
 
 
-def test_read_timeout_reconnect(train_sim, capsys):
-    train_sim._impl._sim_connection.read_timeout_seconds = 0.000000000000001
-    counter = 0
-    while train_sim.run():
-        if counter == 100:
-            break
-        if counter == 50:
-            train_sim._impl._sim_connection.read_timeout_seconds = 240
-        counter += 1
-    out, err = capsys.readouterr()
-    assert 'WS read took longer than' in err
-    assert 'Starting Training' in err
-    assert 'episode_start' in out
-    assert 'simulate' in out
-    train_sim.close()
-
-
 def test_reconnect_reset_rate_counter(flaky_train_sim, monkeypatch):
     def _patched_sleep(backoff):
         return backoff

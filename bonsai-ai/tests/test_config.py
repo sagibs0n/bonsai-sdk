@@ -253,49 +253,6 @@ def test_invalid_retry_timeout_throws_error():
     assert False, "XFAIL"
 
 
-def test_default_pong_interval():
-    config = Config()
-    assert config.pong_interval == 15
-
-
-def test_argv_pong_interval():
-    config = Config([
-        __name__,
-        '--pong-interval', '10'
-    ])
-    assert config.pong_interval == 10
-
-
-def test_valid_pong_intervals():
-    config = Config()
-    config.pong_interval = 1
-    config.pong_interval = 0
-    config.pong_interval = 239
-
-
-def test_invalid_pong_interval_throws_error():
-    config = Config()
-    with pytest.raises(ValueError):
-        config.pong_interval = -1
-    with pytest.raises(ValueError):
-        config.pong_interval = 0.1
-    with pytest.raises(ValueError):
-        config.pong_interval = 250
-
-
-def test_invalid_retry_timeout_argv_throws_error():
-    """ Incorrect values in argparse raise a SystemExit """
-    try:
-        config = Config([
-            __name__,
-            '--pong-interval', 'foo'
-        ])
-    except SystemExit as e:
-        return
-
-    assert False, "XFAIL"
-
-
 def test_argv_accesskey():
     config = Config([
         __name__,
@@ -321,6 +278,11 @@ def test_config_update_creates_profile(temp_dot_bonsai):
     config = Config(profile='FOO')
     config._update(url='BAR')
     assert config._has_section('FOO') is True
+
+
+def test_config_works_if_permission_error(temp_home_directory_read_only):
+    config = Config()
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

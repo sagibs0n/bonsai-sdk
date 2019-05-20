@@ -2,17 +2,26 @@
 
 from __future__ import print_function
 import os
+import sys
 import pytest
 import requests
 import time
 from tempfile import mkdtemp
 from shutil import rmtree
+from urllib.parse import urlparse
 
 from aiohttp import web
 import asyncio
 from multiprocessing import Process
-from socket import SOL_SOCKET, SO_REUSEADDR, socket
+from socket import SOL_SOCKET, SO_REUSEADDR, AF_INET, SOCK_STREAM, socket
 from typing import Any, cast
+
+# pytest-server-fixtures module doesn't support Windows
+# pytest-server-fixtures may need more configuration for OSX support
+if os.name == 'posix' and sys.platform != 'darwin':
+    from pytest_server_fixtures.httpd import HTTPDServer
+else:
+    HTTPDServer = None
 
 try:
     from unittest.mock import Mock
@@ -20,7 +29,8 @@ except ImportError:
     from mock import Mock
 
 
-from bonsai_ai import Simulator, Brain, Config, Luminance, Predictor
+from bonsai_ai import Simulator, Brain, Config, Luminance, Predictor, \
+    BrainController
 from bonsai_ai.brain_api import BrainAPI
 from ws_aiohttp import open_bonsai_ws
 
@@ -206,6 +216,33 @@ def request_errors(request, monkeypatch):
     monkeypatch.setattr(requests.Session, 'get', _request_error)
     monkeypatch.setattr(requests.Session, 'put', _request_error)
     monkeypatch.setattr(requests.Session, 'delete', _request_error)
+    monkeypatch.setattr(requests.Session, 'post', _request_error)
+
+
+@pytest.yield_fixture()
+def proxy_server():
+    proxy_rules = {'/': 'http://127.0.0.1:9000/'}
+    extra_cfg = """
+    LoadModule rewrite_module /usr/lib/apache2/modules/mod_rewrite.so
+    LoadModule proxy_wstunnel_module /usr/lib/apache2/modules/mod_proxy_wstunnel.so
+
+    ServerName localhost
+    LogLevel debug
+    Mutex pthread
+
+    RewriteEngine on
+    RewriteCond %{HTTP:UPGRADE} ^WebSocket$$ [NC]
+    RewriteCond %{HTTP:CONNECTION} ^Upgrade$$ [NC]
+    RewriteRule .* ws://127.0.0.1:9000%{REQUEST_URI} [P]
+    """
+    if not HTTPDServer:
+        raise Exception('This module works only on posix platforms')
+    server = HTTPDServer(proxy_rules,
+                         extra_cfg=extra_cfg,
+                         log_dir='/brain/src/sdk2/bonsai-ai')
+    server.start()
+    yield server
+    server.teardown()
 
 
 @pytest.fixture
@@ -258,6 +295,38 @@ def train_config():
         '--accesskey=VALUE',
         '--username=alice',
         '--url=http://127.0.0.1:9000',
+        '--brain=cartpole',
+    ])
+
+
+@pytest.fixture
+def train_config_proxy_pair(proxy_server):
+    config = Config([
+        __name__,
+        '--accesskey=VALUE',
+        '--username=alice',
+        '--url=http://127.0.0.1:9000',
+        '--proxy={}'.format(proxy_server.uri),
+        '--brain=cartpole',
+    ])
+    return {'config': config, 'log_dir': proxy_server.log_dir}
+
+
+@pytest.fixture
+def train_config_bad_proxy(proxy_server):
+    tcp = socket(AF_INET, SOCK_STREAM)
+    tcp.bind(('', 0))
+    addr, port = tcp.getsockname()
+    tcp.close()
+    free_port = str(port)
+    parsed_uri = urlparse(proxy_server.uri)
+    bad_uri = proxy_server.uri.replace(str(parsed_uri.port), free_port)
+    return Config([
+        __name__,
+        '--accesskey=VALUE',
+        '--username=alice',
+        '--url=http://127.0.0.1:9000',
+        '--proxy={}'.format(bad_uri),
         '--brain=cartpole',
     ])
 
@@ -362,6 +431,22 @@ def record_csv_predict(record_csv_config_predict):
     brain = Brain(record_csv_config_predict)
     sim = CartSim(brain, 'cartpole_simulator')
     sim.enable_keys(['foo'], 'bar')
+    return sim
+
+
+@pytest.fixture
+def train_sim_proxy_pair(train_config_proxy_pair, request):
+    requests.patch("{}/cartpole".format(
+        train_config_proxy_pair['config'].proxy))
+    brain = Brain(train_config_proxy_pair['config'])
+    sim = CartSim(brain, 'cartpole_simulator')
+    return {'sim': sim, 'log_dir': train_config_proxy_pair['log_dir']}
+
+
+@pytest.fixture
+def train_sim_bad_proxy(train_config_bad_proxy, request):
+    brain = Brain(train_config_bad_proxy)
+    sim = CartSim(brain, 'cartpole_simulator')
     return sim
 
 
@@ -475,6 +560,11 @@ def brain_api(train_config):
     return api
 
 
+@pytest.fixture
+def brain_controller(train_config):
+    controller = BrainController(train_config)
+    return controller
+
 def pytest_addoption(parser):
     parser.addoption("--protocol", action="store",
                      help="Path to message JSON")
@@ -483,7 +573,7 @@ def pytest_addoption(parser):
 @pytest.fixture(scope='session', autouse=True)
 def bonsai_ws(request):
     default_protocol = "{}/proto_bin/cartpole_wire.json".format(
-                           os.path.dirname(__file__))
+        os.path.dirname(__file__))
 
     # default protocol can be overriden at the module level
     protocol = getattr(request.session, 'protocol_file', default_protocol)
@@ -536,5 +626,16 @@ def temp_directory():
     rmtree(cast(str, temp_dir))
 
 
+@pytest.yield_fixture()
+def temp_home_directory_read_only(temp_directory):
+    cur_dir = os.getcwd()
+    home_dir = os.environ["HOME"] if "HOME" in os.environ else ""
+    os.chmod(cur_dir, 0o444)
+    os.environ["HOME"] = cur_dir
+    yield
+    os.chmod(cur_dir, 0o777)
+    os.environ["HOME"] = home_dir
+
+
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
-    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+    return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)

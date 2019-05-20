@@ -1,6 +1,7 @@
 from datetime import datetime
 import sys
 from time import time
+from typing import cast, Any
 
 
 class Logger:
@@ -37,7 +38,10 @@ class Logger:
             self._enable_all = False
             self.__class__._impl = self.__dict__
         else:
-            self.__dict__ = self._impl
+            # Add cast to prevent the type checker from complaining
+            # here. It doesn't know that we're mutating the class
+            # below by writing to self.__class__._impl.
+            self.__dict__ = cast(Any, self._impl)
 
     def __getattr__(self, attr):
         if self._enable_all or self._enabled_keys.get(attr, False):

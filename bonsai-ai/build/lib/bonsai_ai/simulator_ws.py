@@ -1,6 +1,6 @@
 # Copyright (C) 2018 Bonsai, Inc.
 
-from asyncio import TimeoutError
+from asyncio import TimeoutError, ensure_future
 from aiohttp import WSMsgType, ClientError, EofStream
 
 # protobuf
@@ -93,7 +93,7 @@ class Simulator_WS(object):
         self._properties_schema = None
         self._output_schema = None
         self._prediction_schema = None
-        self._sim_id = -1
+        self._sim_id = 0
 
         # set_properties
         self._init_properties = {}
@@ -108,6 +108,9 @@ class Simulator_WS(object):
         # Caching actions for predictor
         self._predictor_action = None
         self._sim._reset_rate_counter = True
+
+        # Handle on WS receive for cleanup
+        self._receive_handle = None
 
     def _new_state_message(self):
         """
@@ -293,18 +296,12 @@ class Simulator_WS(object):
                 await self._handle_disconnect(e)
                 return
 
-        try:
-            with self._sim_connection.lock:
-                log.network('Reading response from server')
-                msg = await self._sim_connection.client.receive()
-                log.network('Received response from server')
-        except TimeoutError as e:
-            log.error(
-                'WS read took longer than {} seconds. '
-                'Sim will be disconnected.'.format(
-                    self._sim_connection.read_timeout_seconds))
-            await self._handle_disconnect()
-            return
+        with self._sim_connection.lock:
+            log.network('Reading response from server')
+            self._receive_handle = ensure_future(
+                self._sim_connection.client.receive())
+            msg = await self._receive_handle
+            log.network('Received response from server')
 
         if msg.type == WSMsgType.CLOSE or msg.type == WSMsgType.CLOSED \
               or msg.type == WSMsgType.ERROR or isinstance(msg.data, EofStream):

@@ -125,6 +125,10 @@ class GymSimulator(Simulator):
         # simulate
         gym_action = self.action_to_gym(action)
         rwd_accum = 0
+        done = False
+        i = 0
+        observation = None
+
         for i in range(self._skip_frame):
             observation, reward, done, info = self.gym_simulate(gym_action)
             rwd_accum += reward

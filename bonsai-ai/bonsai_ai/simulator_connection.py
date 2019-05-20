@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 
 log = Logger()
 
+_PING_PONG_INTERVAL = 15.0
 
 class SimulatorConnection(object):
 
@@ -58,6 +59,19 @@ class SimulatorConnection(object):
             else:
                 url = self._brain._simulation_url()
 
+            if url is None or \
+                self._brain.config.accesskey is None or \
+                self._brain.config.username is None:
+                msg = (
+                    'Configuration is invalid. One of the following values URL,'
+                    ' ACCESSKEY, or USERNAME is not configured correctly.'
+                    ' Current value for URL: {}, ACCESSKEY: {}, USERNAME: {}'
+                    ' Please make sure the cli is configured correctly and/or' 
+                    ' the command line arguments are correct'.format(
+                        url, self._brain.config.accesskey, self._brain.config.username))
+                self._retry_timeout_seconds = 0
+                return msg
+
             # we only support http proxies, which actually represent
             # most proxies if no scheme is specified, prepend "http://"
             # to make aiohttp happy. if HTTPS is specified, allow websocket
@@ -76,7 +90,7 @@ class SimulatorConnection(object):
             self._ws = await self._session.ws_connect(
                 url,
                 timeout=self._network_timeout_seconds,
-                receive_timeout=self.read_timeout_seconds,
+                heartbeat=_PING_PONG_INTERVAL,
                 headers={
                     'Authorization': self._brain.config.accesskey,
                     'User-Agent': self._brain._user_info
@@ -91,17 +105,16 @@ class SimulatorConnection(object):
             self._timeout = None
             self._connection_attempts = 0
 
-            if self._brain.config.pong_interval:
-                self._thread_stop.clear()
-                pong_thread = Thread(target=(self._start_pong_loop))
-                pong_thread.daemon = True
-                pong_thread.start()
+            self._thread_stop.clear()
+            pong_thread = Thread(target=(self._start_pong_loop))
+            pong_thread.daemon = True
+            pong_thread.start()
             return None
 
     def _start_pong_loop(self):
         while not self._thread_stop.is_set():
             self._pong()
-            self._thread_stop.wait(self._brain.config.pong_interval)
+            self._thread_stop.wait(_PING_PONG_INTERVAL)
 
     def _pong(self):
         with self.lock:
@@ -145,11 +158,11 @@ class SimulatorConnection(object):
         """ Close the websocket connection """
         self._thread_stop.set()
         if self._ws:
-            with self.lock:
-                log.network('Closing simulator connection')
-                if not self._ws.closed:
+            if not self._ws.closed:
+                with self.lock:
+                    log.network('Closing simulator connection')
                     await self._ws.close()
-                log.network('Closed')
+                    log.network('Closed')
             self._ws = None
         else:
             log.network('Websocket was not connected.'

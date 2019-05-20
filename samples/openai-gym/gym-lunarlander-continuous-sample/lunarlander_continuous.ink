@@ -1,5 +1,9 @@
 inkling "2.0"
 
+experiment {
+    max_step_per_concept: "1000000"
+}
+
 type GameState {
     x_position: number,
     y_position: number,
