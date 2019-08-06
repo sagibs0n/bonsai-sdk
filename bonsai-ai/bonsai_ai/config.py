@@ -12,6 +12,8 @@ from urllib.parse import urlparse, urlunparse
 from urllib.request import getproxies
 
 from bonsai_ai.logger import Logger
+from bonsai_ai.aad import AADClient
+from bonsai_ai.exceptions import AuthenticationError
 
 
 log = Logger()
@@ -43,9 +45,10 @@ _DOT_BRAINS = '.brains'
 
 # CLI help strings
 _ACCESS_KEY_HELP = \
-            'The access key to use when connecting to the BRAIN server. If ' \
-            'specified, it will be used instead of any access key' \
-            'information stored in a bonsai config file.'
+    'The access key to use when connecting to the BRAIN server. If ' \
+    'specified, it will be used instead of any access key' \
+    'information stored in a bonsai config file.'
+_AAD_HELP = 'Use Azure Active Directory authentication if no accesskey is set.'
 _USERNAME_HELP = 'Bonsai username.'
 _URL_HELP = \
     'Bonsai server URL. The URL should be of the form ' \
@@ -141,7 +144,12 @@ class Config(object):
             ...
 
     """
-    def __init__(self, argv=sys.argv, profile=None):
+    def __init__(self,
+                 argv=sys.argv,
+                 profile=None,
+                 control_plane_auth=False,
+                 use_aad=False,
+                 fetch_workspace=True):
         """
         Construct Config object with program arguments.
         Pass in sys.argv for command-line arguments and an
@@ -150,11 +158,14 @@ class Config(object):
         Arguments:
             argv:    A list of argument strings.
             profile: The name of a profile to select. (optional)
+            control_plane_auth: Instance will be used on control plane
+            use_aad: Use AAD authentication
         """
         self.accesskey = None
         self.username = None
         self.url = None
         self.use_color = True
+        self.use_aad = use_aad
 
         self.brain = None
 
@@ -171,6 +182,7 @@ class Config(object):
         self._config_parser = RawConfigParser(allow_no_value=True)
         self._read_config()
         self.profile = profile
+        self.disable_telemetry = False
 
         self._parse_env()
         self._parse_config(_DEFAULT)
@@ -181,6 +193,31 @@ class Config(object):
         # parse args works differently in 2.7
         if sys.version_info >= (3, 0):
             self._parse_legacy(argv)
+
+        self._aad_client = None
+
+        if control_plane_auth:
+            if self.use_aad:
+                self._aad_client = AADClient(str(self.url))
+                self.accesskey = self._aad_client.get_access_token()
+                if fetch_workspace:
+                    self.username = self._aad_client.get_workspace()
+            else:
+                # use legacy auth (bonsai accesskey)
+                pass
+        else:
+            # we are connecting over data plane
+            if self.accesskey:
+                # allow connecting with accesskey on the data plane
+                # if there is one
+                pass
+            elif self.use_aad:
+                # no access key provided, so set the initial access token
+                # and the flag so that we know to attempt token refresh
+                self._aad_client = AADClient(str(self.url))
+                self.accesskey = self._aad_client.get_access_token()
+                if fetch_workspace:
+                    self.username = self._aad_client.get_workspace()
 
     def __repr__(self):
         """ Prints out a JSON formatted string of the Config state. """
@@ -195,7 +232,8 @@ class Config(object):
             '\"brain_version\": \"{self.brain_version!r}\", ' \
             '\"proxy\": \"{self.proxy!r}\", ' \
             '\"retry_timeout\": \"{self.retry_timeout!r}\", ' \
-            '\"network_timeout\": \"{self.network_timeout!r}\" ' \
+            '\"network_timeout\": \"{self.network_timeout!r}\", ' \
+            '\"disable_telemetry\": \"{self.disable_telemetry!r}\" ' \
             '}}'.format(self=self)
 
     @property
@@ -216,7 +254,7 @@ class Config(object):
                 https_proxy = proxy_dict.get(_HTTPS_PROXY, None)
                 if https_proxy is not None:
                     proxy = https_proxy
-   
+
         return proxy
 
     @proxy.setter
@@ -258,6 +296,12 @@ class Config(object):
             raise ValueError(
                 'Network timeout must be a positive integer.')
         self._network_timeout_seconds = value
+
+    def refresh_access_token(self):
+        if self._aad_client:
+            self.accesskey = self._aad_client.get_access_token()
+            if not self.accesskey:
+                raise AuthenticationError('Could not refresh AAD bearer token.')
 
     def _parse_env(self):
         ''' parse out environment variables used in hosted containers '''
@@ -368,6 +412,8 @@ class Config(object):
             nargs='?',
             const='latest',
             default=None)
+        parser.add_argument('--aad', action='store_true',
+                            help=_AAD_HELP)
         parser.add_argument('--verbose', action='store_true',
                             help=_VERBOSE_HELP)
         parser.add_argument('--performance', action='store_true',
@@ -379,8 +425,17 @@ class Config(object):
                             help=_RETRY_TIMEOUT_HELP)
         parser.add_argument('--network-timeout', type=int,
                             help=_NETWORK_TIMEOUT_HELP)
+        parser.add_argument(
+            '--disable-telemetry',
+            dest='disable_telemetry',
+            action='store_true',
+        )
+        parser.set_defaults(disable_telemetry=False)
 
         args, remainder = parser.parse_known_args(argv[1:])
+
+        if args.aad:
+            self.use_aad = args.aad
 
         if args.accesskey is not None:
             self.accesskey = args.accesskey
@@ -419,6 +474,8 @@ class Config(object):
 
         if args.network_timeout is not None:
             self.network_timeout = args.network_timeout
+
+        self.disable_telemetry = args.disable_telemetry
 
         brain_version = None
         if args.predict is not None:

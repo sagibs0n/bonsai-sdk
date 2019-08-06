@@ -1,6 +1,7 @@
 # Copyright (C) 2018 Bonsai, Inc.
 from datetime import datetime
 from time import time
+from typing import Any, Tuple
 
 import asyncio
 
@@ -222,7 +223,7 @@ class Simulator(object):
         raise NotImplementedError(
             'Abstract method episode_start() has not been implemented')
 
-    def simulate(self, action):
+    def simulate(self, action) -> Tuple[Any, float, bool]:
         """
         This callback steps the simulation forward by a single step.
         It passes in the `action` to be taken, and expects the resulting
@@ -429,8 +430,16 @@ class Simulator(object):
 
     def close(self):
         """ Closes websocket Connection """
+        self.brain._aria_writer.close()
         if self._impl._receive_handle:
             self._impl._receive_handle.cancel()
+            try:
+                if not self._impl._receive_handle.done() or \
+                        self._impl._receive_handle.cancelled():
+                    self._ioloop.run_until_complete(self._impl._receive_handle)
+            except asyncio.CancelledError:
+                pass
+
         self._ioloop.run_until_complete(self._impl._sim_connection.close())
 
     def get_next_event(self):

@@ -1,16 +1,13 @@
+import async_timeout
 import json
+import os
 import sys
-from google.protobuf.json_format import Parse
-
-from time import sleep
-
-from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
-from bonsai_ai.proto.generator_simulator_api_pb2 import SimulatorToServer
+import weakref
 
 from aiohttp import web, WSMsgType, WSCloseCode, EofStream
-import weakref
-import os
-import async_timeout
+from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
+from bonsai_ai.proto.generator_simulator_api_pb2 import SimulatorToServer
+from google.protobuf.json_format import Parse
 from typing import Any, cast
 
 
@@ -78,7 +75,6 @@ USER_STATUS = {'brains': [{'name': "cartpole"}]}
 
 START_STOP_RESUME = {
     "brain_url": "/v1/alice/cartpole/1",
-    "compiler_version": "2.0.0",
     "manage_simulator": False,
     "name": "cartpole",
     "simulator_connect_url": "/v1/alice/cartpole/sims/ws",
@@ -102,7 +98,6 @@ CREATE_PUSH = {
         "cartpole.ink"
     ],
     "ink_compile": {
-        "compiler_version": "2.0.0",
         "errors": [],
         "inkling_version": "2.0",
         "success": True,
@@ -302,7 +297,7 @@ class BonsaiWS:
            self._count < self._fail_point + self._fail_duration:
             return web.Response(status=503, text="Service Unavailable")
 
-        ws = web.WebSocketResponse()
+        ws = web.WebSocketResponse(protocols=['', 'bonsaiauth'])
         await ws.prepare(request)
         ws.force_close()
 
@@ -324,6 +319,8 @@ class BonsaiWS:
             async for msg in ws:
                 if msg.type == WSMsgType.CLOSE:
                     await ws.close()
+                elif msg.data == b'foobar':
+                    await ws.send_bytes(b'bazqux')
                 else:
                     self._count += 1
                     from_sim = SimulatorToServer()

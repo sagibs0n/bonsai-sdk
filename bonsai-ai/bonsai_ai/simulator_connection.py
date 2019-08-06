@@ -1,8 +1,10 @@
 import time
 from random import uniform
 from threading import Lock, Thread, Event
+from uuid import uuid4
 from bonsai_ai.exceptions import BonsaiServerError, RetryTimeoutError
 from bonsai_ai.logger import Logger
+from .aria_writer import SimConnecting
 
 from aiohttp import ClientSession, WSServerHandshakeError, TCPConnector
 import asyncio
@@ -12,6 +14,7 @@ from urllib.parse import urlparse
 log = Logger()
 
 _PING_PONG_INTERVAL = 15.0
+
 
 class SimulatorConnection(object):
 
@@ -53,6 +56,7 @@ class SimulatorConnection(object):
         if self._connection_attempts > 1:
             self._handle_reconnect()
 
+        request_id = str(uuid4())
         try:
             if self._predict is True:
                 url = self._brain._prediction_url()
@@ -66,7 +70,7 @@ class SimulatorConnection(object):
                     'Configuration is invalid. One of the following values URL,'
                     ' ACCESSKEY, or USERNAME is not configured correctly.'
                     ' Current value for URL: {}, ACCESSKEY: {}, USERNAME: {}'
-                    ' Please make sure the cli is configured correctly and/or' 
+                    ' Please make sure the cli is configured correctly and/or'
                     ' the command line arguments are correct'.format(
                         url, self._brain.config.accesskey, self._brain.config.username))
                 self._retry_timeout_seconds = 0
@@ -83,6 +87,7 @@ class SimulatorConnection(object):
                     proxy = "http://" + proxy
 
             log.network('trying to connect: {}'.format(url))
+            self._brain._aria_writer.track(SimConnecting(self._predict))
             self._session = ClientSession(
                 connector=TCPConnector(force_close=True)
             )
@@ -93,13 +98,20 @@ class SimulatorConnection(object):
                 heartbeat=_PING_PONG_INTERVAL,
                 headers={
                     'Authorization': self._brain.config.accesskey,
-                    'User-Agent': self._brain._user_info
+                    'User-Agent': self._brain._user_info,
+                    'RequestId': request_id
                 },
                 proxy=proxy
             )
             log.network('Connected to {}'.format(url))
         except WSServerHandshakeError as e:
-            log.info("Failed to connect: {}".format(repr(e)))
+            log.info("Failed to connect: {}, Request ID: {}".format(
+                repr(e), request_id))
+            if e.headers is not None:
+                try:
+                    log.info('Span ID: {}'.format(e.headers['SpanID']))
+                except KeyError:
+                    pass
             return e
         else:
             self._timeout = None
@@ -144,14 +156,14 @@ class SimulatorConnection(object):
         Check the following url for more information
         https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
         """
-        power_of_two = 2 ** (self._connection_attempts-1)
+        power_of_two = 2 ** (self._connection_attempts - 1)
         max_sleep = min(
             power_of_two * self._base_multiplier_milliseconds / 1000.0,
             self._maximum_backoff_seconds
         )
         sleep = uniform(0, max_sleep)
         log.info('Connection attempt: {}, backing off for {} seconds'.format(
-                 self._connection_attempts, sleep))
+            self._connection_attempts, sleep))
         time.sleep(sleep)
 
     async def close(self):

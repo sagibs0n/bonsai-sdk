@@ -1,6 +1,5 @@
 # Copyright (C) 2018 Bonsai, Inc.
 
-import json
 from urllib.parse import urljoin, urlparse, urlunparse
 
 import requests
@@ -8,7 +7,7 @@ import requests
 from bonsai_ai.common.utils import get_user_info
 from bonsai_ai.logger import Logger
 from bonsai_ai.brain_api import BrainAPI
-from .version import __version__
+from .aria_writer import AriaWriter
 
 log = Logger()
 
@@ -56,9 +55,7 @@ class Brain(object):
             name:   The name of the BRAIN to connect to.
         """
         self._config = config
-        self._api = BrainAPI(
-            config.accesskey, config.username,
-            config.url, config.network_timeout)
+        self._api = BrainAPI(config, config.network_timeout)
         self._timeout = self.config.network_timeout
         self.description = None
         self.name = name if name else self.config.brain
@@ -68,7 +65,10 @@ class Brain(object):
         self._sims = None
         self.latest_version = None
         self._user_info = get_user_info()
-
+        self._aria_writer = AriaWriter(
+            cluster_url=config.url,
+            disable_telemetry=config.disable_telemetry
+        )
         self.update()
 
     def __repr__(self):
@@ -86,9 +86,7 @@ class Brain(object):
     @config.setter
     def config(self, config):
         self._config = config
-        self._api = BrainAPI(
-            config.accesskey, config.username,
-            config.url, config.network_timeout)
+        self._api = BrainAPI(config, config.network_timeout)
 
     def _brain_url(self):
         """ Utility function to obtain brain url from config.
@@ -125,11 +123,6 @@ class Brain(object):
         """ Returns simulation url """
         return '{}/sims/ws'.format(self._websocket_url())
 
-    def _request_header(self):
-        """ Utility function to obtain header that is sent with requests """
-        return {'Authorization': self.config.accesskey,
-                'User-Agent': self._user_info}
-
     def _proxy_header(self):
         """ Utility function to obtain proxy that is sent with requests """
         if self.config.proxy:
@@ -163,6 +156,7 @@ class Brain(object):
         except requests.exceptions.Timeout as e:
             log.error('Request timeout in bonsai_ai.Brain: ' + repr(e))
         except Exception as e:
+            print(e)
             print('WARNING: ignoring failed update in Brain init.')
 
     @property

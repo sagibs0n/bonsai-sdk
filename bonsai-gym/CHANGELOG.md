@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.13
+- Code cleanup
+
 ## 2.0.12
 - Pyright bug fixes
 

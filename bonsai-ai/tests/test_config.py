@@ -3,7 +3,7 @@ import os
 import pytest
 import sys
 import json
-from configparser import NoSectionError
+
 from bonsai_ai import Config
 from bonsai_ai.logger import Logger
 

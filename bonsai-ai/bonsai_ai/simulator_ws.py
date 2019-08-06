@@ -1,6 +1,6 @@
 # Copyright (C) 2018 Bonsai, Inc.
 
-from asyncio import TimeoutError, ensure_future
+from asyncio import ensure_future
 from aiohttp import WSMsgType, ClientError, EofStream
 
 # protobuf
@@ -12,10 +12,10 @@ from bonsai_ai.proto.generator_simulator_api_pb2 import SimulatorToServer
 
 # bonsai
 from bonsai_ai.common.proto_to_state import dict_for_message
-from bonsai_ai.event import EpisodeStartEvent, SimulateEvent, \
-    EpisodeFinishEvent, FinishedEvent, UnknownEvent
-from bonsai_ai.exceptions import SimulateError, EpisodeStartError, \
-    BonsaiServerError, EpisodeFinishError
+from bonsai_ai.event import (EpisodeStartEvent, SimulateEvent,
+    EpisodeFinishEvent, FinishedEvent, UnknownEvent)
+from bonsai_ai.exceptions import (SimulateError, EpisodeStartError,
+    BonsaiServerError, EpisodeFinishError)
 from bonsai_ai.inkling_factory import InklingMessageFactory
 from bonsai_ai.logger import Logger
 from bonsai_ai.simulator_connection import SimulatorConnection
@@ -290,18 +290,20 @@ class Simulator_WS(object):
                             "Attempted write to closed web socket"
                         )
                         return
+                    log.network('Attempting to send message to server.')
                     await self._sim_connection.client.send_bytes(out_bytes)
+                    log.network('Message sent to server.')
 
             except ClientError as e:
                 await self._handle_disconnect(e)
                 return
 
         with self._sim_connection.lock:
-            log.network('Reading response from server')
+            log.network('Waiting for message from server.')
             self._receive_handle = ensure_future(
                 self._sim_connection.client.receive())
             msg = await self._receive_handle
-            log.network('Received response from server')
+            log.network('Received message from server.')
 
         if msg.type == WSMsgType.CLOSE or msg.type == WSMsgType.CLOSED \
               or msg.type == WSMsgType.ERROR or isinstance(msg.data, EofStream):

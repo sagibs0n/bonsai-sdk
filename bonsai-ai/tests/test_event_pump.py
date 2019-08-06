@@ -1,8 +1,5 @@
 # Copyright (C) 2018 Bonsai, Inc.
 
-import requests
-import asyncio
-
 # pylint: disable=missing-docstring
 # pylint: disable=too-many-function-args
 from bonsai_ai.event import SimulateEvent, EpisodeStartEvent, \

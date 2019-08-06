@@ -22,6 +22,11 @@ class EpisodeFinishError(BonsaiClientError):
         super(EpisodeFinishError, self).__init__("Error in episode_finish", e)
 
 
+class AuthenticationError(BonsaiClientError):
+    def __init__(self, e):
+        super(AuthenticationError, self).__init__("Error authenticating user",
+                                                  e)
+
 class RetryTimeoutError(Exception):
     pass
 
@@ -32,6 +37,7 @@ class BonsaiServerError(Exception):
 
 class SimStateError(Exception):
     pass
+
 
 class UsageError(Exception):
     pass

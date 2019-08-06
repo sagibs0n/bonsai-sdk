@@ -1,9 +1,9 @@
 """
 Copyright (C) 2019 Microsoft
 """
-import functools
 import json
 import os
+from uuid import uuid4
 
 from urllib.parse import urljoin
 from urllib.request import getproxies
@@ -37,29 +37,6 @@ _ITERATION_METRICS_URL_PATH_TEMPLATE = \
 log = Logger()
 
 
-def _handle_connection_and_timeout_errors(func):
-    """
-    Decorator for handling ConnectionErrors and Timeout errors raised
-    by the requests library
-
-    :param func: the function being decorated
-    """
-    @functools.wraps(func)
-    def _handler(self, http_method, url, *args, **kwargs):
-        try:
-            return func(self, http_method, url, *args, **kwargs)
-        except requests.exceptions.ConnectionError:
-            message = \
-                "{} Request failed. Unable to connect to domain: " \
-                    "{}".format(http_method, url)
-            raise BonsaiServerError(message)
-        except requests.exceptions.Timeout:
-            message = "{} Request failed. Request to {} timed out".format(
-                http_method, url)
-            raise BonsaiServerError(message)
-    return _handler
-
-
 class BrainAPI():
     """
     This object provides an abstraction to use the Brain API. It sets up
@@ -69,10 +46,11 @@ class BrainAPI():
     In the event of an error the object will raise an error providing the
     consumer details, such as failing response codes and/or error messages.
     """
-    def __init__(self, access_key, username, api_url, timeout=30):
-        self._access_key = access_key
-        self._username = username
-        self._api_url = api_url
+    def __init__(self, config, timeout=30):
+        self._config = config
+        self._access_key = config.accesskey
+        self._username = config.username
+        self._api_url = config.url
         self._timeout = timeout
         self._user_info = get_user_info()
         self._session = requests.Session()
@@ -136,7 +114,7 @@ class BrainAPI():
         """
         Creates a brain. A path to an inkling file or a raw inkling string
         can be passed in as arguments to the function. If neither are present,
-        a blank BRAIN is created. The inkling file is prioritized over the 
+        a blank BRAIN is created. The inkling file is prioritized over the
         string.
 
         param brain_name: string
@@ -168,7 +146,7 @@ class BrainAPI():
     def push_inkling(self, brain_name, ink_file: Optional[str]=None, ink_str=None):
         """
         Pushes inkling to server. A path to an inkling file or a raw inkling
-        string can be passed in as arguments to the function. If neither are 
+        string can be passed in as arguments to the function. If neither are
         present an error is raised to the caller.
 
         param brain_name: string
@@ -234,8 +212,7 @@ class BrainAPI():
         url = urljoin(self._api_url, url_path)
         return self._http_request('DELETE', url)
 
-    @_handle_connection_and_timeout_errors
-    def _http_request(self, http_method, url, data=None):
+    def _try_http_request(self, http_method, url, data):
         """
         param: http_method -> String: Http method for request, I.E. "GET"
         param: url -> String: url to send request
@@ -243,37 +220,72 @@ class BrainAPI():
         """
 
         log.api('Sending {} request to {}'.format(http_method, url))
+        request_id = str(uuid4())
+        try:
+            if http_method == 'GET':
+                response = self._session.get(
+                    url=url, allow_redirects=False,
+                    timeout=self._timeout, headers={'RequestId': request_id})
 
-        if http_method == 'GET':
-            response = self._session.get(
-                url=url, allow_redirects=False, timeout=self._timeout)
+            elif http_method == 'PUT':
+                response = self._session.put(
+                    url=url, data=data, headers={'RequestId': request_id},
+                    allow_redirects=False, timeout=self._timeout)
 
-        elif http_method == 'PUT':
-            response = self._session.put(
-                url=url, data=data,
-                allow_redirects=False, timeout=self._timeout)
+            elif http_method == 'POST':
+                response = self._session.post(
+                    url=url, data=data, allow_redirects=False,
+                    timeout=self._timeout, headers={'RequestId': request_id})
 
-        elif http_method == 'POST':
-            response = self._session.post(
-                url=url,  data=data, allow_redirects=False, 
-                timeout=self._timeout)
-
-        elif http_method == 'DELETE':
-            response = self._session.delete(
-                url=url, allow_redirects=False, timeout=self._timeout)
-
-        else:
-            raise UsageError('UNSUPPORTED HTTP METHOD')
+            elif http_method == 'DELETE':
+                response = self._session.delete(
+                    url=url, allow_redirects=False,
+                    timeout=self._timeout, headers={'RequestId': request_id})
+            else:
+                raise UsageError('UNSUPPORTED HTTP METHOD')
+        except requests.exceptions.ConnectionError:
+            message = \
+                "Connection Error, {} Request failed. Unable to connect to " \
+                "domain: {}\nRequest ID: {}".format(http_method, url, request_id)
+            raise BonsaiServerError(message)
+        except requests.exceptions.Timeout:
+            message = "{} Request failed. Request to {} timed out" \
+                "\nRequest ID: {}".format(http_method, url, request_id)
+            raise BonsaiServerError(message)
 
         try:
             response.raise_for_status()
-            self._log_response(response)
+            self._log_response(response, request_id)
         except requests.exceptions.HTTPError as err:
-            self._handle_http_error(response)
+            self._handle_http_error(response, request_id)
         return self._dict(response)
 
+    def _http_request(self, http_method, url, data=None):
+        """
+        Wrapper for _try_http_request(), will refresh token and retry if first
+        attempt fails due to expired token.
+
+        param: http_method -> String: Http method for request, I.E. "GET"
+        param: url -> String: url to send request
+        param: data -> JSON Formatted Dictionary: json data to send with request
+        """
+        try:
+            return self._try_http_request(http_method, url, data)
+        except BonsaiServerError as err:
+            error_lowercase = str(err).lower()
+            if 'token' in error_lowercase and 'expired' in error_lowercase:
+                self._config.refresh_access_token()
+                self._access_key = self._config.accesskey
+                self._session.headers.update({
+                    'Authorization': self._access_key,
+                    'User-Agent': self._user_info
+                })
+                return self._try_http_request(http_method, url, data)
+            else:
+                raise err
+
     @staticmethod
-    def _handle_http_error(response):
+    def _handle_http_error(response, request_id):
         """
         :param response: The response from the server.
         """
@@ -282,6 +294,14 @@ class BrainAPI():
                 response.json()["error"])
         except ValueError:
             message = 'Request failed.'
+
+        message += '\nRequest ID: {}'.format(request_id)
+
+        try:
+            message += '\nSpan ID: {}'.format(response.headers['SpanID'])
+        except KeyError:
+            pass
+
         raise BonsaiServerError(message)
 
     @staticmethod
@@ -308,15 +328,16 @@ class BrainAPI():
         return {}
 
     @staticmethod
-    def _log_response(response):
+    def _log_response(response, request_id):
         # load json, if any...
         try:
             dump = json.dumps(response.json(), indent=4, sort_keys=True)
         except ValueError:
             dump = "{}"
 
-        log.api("url: {} {}\n\tstatus: {}\n\tjson: {}".format(
-            response.request.method, response.url, response.status_code, dump))
+        log.api("url: {} {}\n\tstatus: {}\n\tjson: {}\n\trequest_id:{}".format(
+            response.request.method, response.url,
+            response.status_code, dump, request_id))
 
     @staticmethod
     def _handle_inkling_file(ink_file: str):
@@ -328,7 +349,7 @@ class BrainAPI():
             return relpath, ink_data
         else:
             raise UsageError()
-    
+
     @staticmethod
     def _generate_payload(brain_name, ink_data=None, ink_name=None):
         json = {
@@ -352,9 +373,9 @@ class BrainAPI():
         else:
             json["project_file"]["content"]["files"] = []
             file_payload = {}
-        
+
         return json, file_payload
-        
+
     @staticmethod
     def _compose_multipart(json_dict, filesdata):
         """ Composes multipart/mixed request for create/edit brain.

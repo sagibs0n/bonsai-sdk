@@ -156,9 +156,10 @@ class TicTacToeGame(object):
 
     def advance(self, actions):
 
+        move = int(actions['move'])
         # Player's turn.
-        if self.is_space_free(actions['move']):
-            self.make_move(self.playerLetter, actions['move'])
+        if self.is_space_free(move):
+            self.make_move(self.playerLetter, move)
             if self.is_winner(self.playerLetter):
                 log.game("\n\n Player Won\n")
                 self.print_board()
@@ -172,7 +173,7 @@ class TicTacToeGame(object):
                 self.terminal = True
                 return self.render(), self.reward, self.terminal
             else:
-                log.game(actions['move'])
+                log.game(move)
                 self.reward = 0.01
         else:
             log.game("space taken")

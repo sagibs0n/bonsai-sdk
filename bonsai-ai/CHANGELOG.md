@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.6
+- #11688: Add RequestId header to all requests
+- #11815  Aria telemetry
+- #11930: Update sdk network logs
+- #12116: Move telemetry blacklist logic into AriaWriter class
+- #11945: Add support for AAD authentication
+
 ## 2.1.5
 - #10269: Create and Push Inkling added to BrainAPI
 - #10770: Config will not break sims when users have no permissions to write to HOME

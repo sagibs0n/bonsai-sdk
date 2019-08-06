@@ -92,7 +92,8 @@ def test_get_http_error(request_errors, brain_api):
     try:
         brain_api.test_episode_metrics('cartpole', 'latest')
     except BonsaiServerError as e:
-        str(e).find('Request failed') >= 0
+        assert str(e).find('Request failed') >= 0
+        assert str(e).find('Span ID') >= 0
     else:
         assert False
 
@@ -121,6 +122,7 @@ def test_put_http_error(request_errors, brain_api):
         brain_api.start_training('cartpole')
     except BonsaiServerError as e:
         assert str(e).find('Request failed') >= 0
+        assert str(e).find('Span ID') >= 0
     else:
         assert False
 
@@ -148,6 +150,7 @@ def test_post_http_error(request_errors, brain_api):
         brain_api.create_brain('cartpole', ink_str='inkling')
     except BonsaiServerError as e:
         assert str(e).find('Request failed') >= 0
+        assert str(e).find('Span ID') >= 0
     else:
         assert False
 
@@ -176,5 +179,6 @@ def test_delete_http_error(request_errors, brain_api):
         brain_api.delete_brain('cartpole')
     except BonsaiServerError as e:
         assert str(e).find('Request failed') >= 0
+        assert str(e).find('Span ID') >= 0
     else:
         assert False

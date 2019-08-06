@@ -33,7 +33,8 @@ setup(
         'protobuf>=3.0.0,<4',
         'requests>=2.11',
         'configparser>=3.5.0',
-        'aiohttp==2.3.10'
+        'aiohttp==2.3.10',
+        'msal>=0.5.1',
     ],
     python_requires='>=3.5',
     packages=find_packages(),

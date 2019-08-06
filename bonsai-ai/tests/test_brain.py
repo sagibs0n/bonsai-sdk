@@ -2,10 +2,8 @@
 
 # pylint: disable=missing-docstring
 # pylint: disable=too-many-function-args
-import json
 import os
 import pytest
-import requests
 
 from bonsai_ai import Brain, Config
 from bonsai_ai.brain import IN_PROGRESS, STOPPED
@@ -38,7 +36,7 @@ def test_brain_update(blank_brain, v2_get):
 
 def test_brain_predict_version():
     """ Tests brain version property """
-    config = Config([__name__, '--predict=4'])
+    config = Config([__name__, '--predict=4', '--disable-telemetry'])
     brain = Brain(config)
     assert brain.config.predict is True
     assert brain.config.brain_version == 4
@@ -69,7 +67,7 @@ def set_proxies(http_proxy, https_proxy, all_proxy):
 
 
 def test_brain_no_proxy():
-    config = Config([__name__])
+    config = Config([__name__, '--disable-telemetry'])
     brain = Brain(config)
     assert brain._proxy_header() is None
 
@@ -79,7 +77,7 @@ def test_brain_with_proxy():
     set_proxies(http_proxy='pass',
                 https_proxy=None,
                 all_proxy=None)
-    config = Config([__name__])
+    config = Config([__name__, '--disable-telemetry'])
     brain = Brain(config)
     assert brain._proxy_header() is not None
 
@@ -95,7 +93,7 @@ def test_brain_name_is_not_none(train_config):
 
 
 def test_brain_timeout():
-    config = Config([__name__, '--network-timeout=1'])
+    config = Config([__name__, '--network-timeout=1', '--disable-telemetry'])
     brain = Brain(config)
     assert brain._timeout == 1
 

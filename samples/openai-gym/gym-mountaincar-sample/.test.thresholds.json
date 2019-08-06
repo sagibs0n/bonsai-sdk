@@ -1,7 +1,14 @@
 {
-    "executable": "mountaincar_simulator.py",
-    "prediction": {
-        "episodes": 100,
-        "mean": -40
-    }
+   "executable": "mountaincar_simulator.py",
+   "prediction": {
+       "episodes": 100,
+       "mean": -40
+   },
+   "training": {
+       "concepts": [
+           "high_score"
+       ],
+       "episodes": 10,
+       "iterations": 10
+   }
 }

@@ -2,11 +2,9 @@
 
 # pylint: disable=missing-docstring
 # pylint: disable=too-many-function-args
-import pytest
 
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
 from bonsai_ai.common.state_to_proto import SimStateError
-from bonsai_ai.exceptions import BonsaiServerError
 
 
 def test_predictor(predictor, bonsai_ws):

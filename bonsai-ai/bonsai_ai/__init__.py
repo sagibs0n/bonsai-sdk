@@ -17,12 +17,15 @@ Classes:
     Predictor: A class for running predictions against a BRAIN.
     Luminance: A class for representing Luminance data in Inkling schemas.
 """
+
+# pyright: reportUnusedImport=false
+
 from .brain import Brain
 from .brain_controller import BrainController
 from .config import Config
 from .simulator import Simulator
 from .inkling_types import Luminance
 from .predictor import Predictor
-from .event import EpisodeStartEvent, SimulateEvent, \
-    EpisodeFinishEvent, FinishedEvent, UnknownEvent
+from .event import (EpisodeStartEvent, SimulateEvent,
+    EpisodeFinishEvent, FinishedEvent, UnknownEvent)
 from .version import __version__

@@ -5,19 +5,13 @@
 import os
 import pytest
 import sys
-from conftest import CartSim
 import time
-from requests.exceptions import ConnectionError
-from aiohttp.client_exceptions import ClientProxyConnectionError
 
+from aiohttp.client_exceptions import ClientProxyConnectionError
 from bonsai_ai.proto.generator_simulator_api_pb2 import ServerToSimulator
 from bonsai_ai import Config, Brain, Simulator
+from conftest import CartSim
 from typing import Any, cast
-
-try:
-    from unittest.mock import Mock
-except ImportError:
-    from mock import Mock
 
 
 def test_train(train_sim):
@@ -84,16 +78,6 @@ def test_predict(predict_sim):
             ServerToSimulator.PREDICTION
 
     predict_sim.close()
-
-
-# this test raises a runtimewarning around a misused coroutine.
-# removing as not meaningful
-# def test_sim_run(train_sim):
-#     train_sim._ioloop = Mock()
-#     train_sim._ioloop.run_until_complete.return_value = True
-#     assert train_sim.run() is True
-
-#     train_sim.close()
 
 
 def test_reset_rate_counter(train_sim, monkeypatch):
@@ -191,6 +175,7 @@ def test_run_subclass_without_simulate(train_config):
 def test_run_simulator_with_no_dot_bonsai_or_cl_args(
         temp_home_directory_read_only, capsys):
     config = Config()
+    config.disable_telemetry = True
     brain = Brain(config)
     sim = Simulator(brain, 'sim')
     sim.run()

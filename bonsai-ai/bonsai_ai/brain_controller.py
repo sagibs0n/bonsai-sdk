@@ -24,19 +24,14 @@ class BrainController():
     """
     def __init__(self, config):
         self._config = config
-        self._api = BrainAPI(
-            access_key=config.accesskey,
-            username=config.username,
-            api_url=config.url,
-            timeout=config.network_timeout
-        )
+        self._api = BrainAPI(config=config, timeout=config.network_timeout)
 
     @_handle_server_errors
     def create(self, name, ink_file=None, ink_str=None):
         """
         Creates a BRAIN. A path to an inkling file or a raw inkling string
         can be passed in as arguments to the function. If neither are present,
-        a blank BRAIN is created. The inkling file is prioritized over the 
+        a blank BRAIN is created. The inkling file is prioritized over the
         string.
 
         param name: string
@@ -64,7 +59,7 @@ class BrainController():
     def push_inkling(self, name, ink_file=None, ink_str=None):
         """
         Pushes inkling to server. A path to an inkling file or a raw inkling
-        string can be passed in as arguments to the function. If neither are 
+        string can be passed in as arguments to the function. If neither are
         present an error is raised to the caller.
 
         param name: string

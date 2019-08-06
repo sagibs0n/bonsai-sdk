@@ -11,10 +11,10 @@ from shutil import rmtree
 from urllib.parse import urlparse
 
 from aiohttp import web
-import asyncio
 from multiprocessing import Process
-from socket import SOL_SOCKET, SO_REUSEADDR, AF_INET, SOCK_STREAM, socket
+from socket import AF_INET, SOCK_STREAM, socket
 from typing import Any, cast
+from uuid import uuid4
 
 # pytest-server-fixtures module doesn't support Windows
 # pytest-server-fixtures may need more configuration for OSX support
@@ -206,6 +206,7 @@ def request_errors(request, monkeypatch):
         response.raise_for_status = Mock(
             side_effect=requests.exceptions.HTTPError(503))
         response.json = Mock(side_effect=ValueError)
+        response.headers = {'SpanID': uuid4()}
 
     def _request_error(*args, **kwargs):
         if error:
@@ -259,7 +260,8 @@ def record_json_config():
         '--username=alice',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
-        '--record=foobar.json'
+        '--record=foobar.json',
+        '--disable-telemetry',
     ])
 
 
@@ -271,7 +273,8 @@ def record_csv_config():
         '--username=alice',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
-        '--record=foobar.csv'
+        '--record=foobar.csv',
+        '--disable-telemetry',
     ])
 
 
@@ -284,7 +287,8 @@ def record_csv_config_predict():
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
         '--record=foobar.csv',
-        '--predict=4'
+        '--predict=4',
+        '--disable-telemetry',
     ])
 
 
@@ -296,6 +300,7 @@ def train_config():
         '--username=alice',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
+        '--disable-telemetry',
     ])
 
 
@@ -308,6 +313,7 @@ def train_config_proxy_pair(proxy_server):
         '--url=http://127.0.0.1:9000',
         '--proxy={}'.format(proxy_server.uri),
         '--brain=cartpole',
+        '--disable-telemetry',
     ])
     return {'config': config, 'log_dir': proxy_server.log_dir}
 
@@ -328,6 +334,7 @@ def train_config_bad_proxy(proxy_server):
         '--url=http://127.0.0.1:9000',
         '--proxy={}'.format(bad_uri),
         '--brain=cartpole',
+        '--disable-telemetry',
     ])
 
 
@@ -339,6 +346,7 @@ def auth_config():
         '--username=needsauth',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
+        '--disable-telemetry',
     ])
 
 
@@ -350,6 +358,7 @@ def flaky_train_config():
         '--username=flake',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
+        '--disable-telemetry',
     ])
 
 
@@ -361,6 +370,7 @@ def eofstream_config():
         '--username=eofstream',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
+        '--disable-telemetry',
     ])
 
 
@@ -372,6 +382,7 @@ def error_msg_config():
         '--username=error_msg',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
+        '--disable-telemetry',
     ])
 
 
@@ -383,6 +394,7 @@ def pong_config():
         '--username=pong',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
+        '--disable-telemetry',
     ])
 
 
@@ -396,6 +408,7 @@ def predict_config():
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
         '--predict=4',
+        '--disable-telemetry',
     ])
 
 
@@ -403,7 +416,8 @@ def predict_config():
 def logging_config():
     Config([
         __name__,
-        '--log', 'foo', 'baz'
+        '--log', 'foo', 'baz',
+        '--disable-telemetry',
     ])
 
 
@@ -552,11 +566,7 @@ def luminance_sim(train_config):
 
 @pytest.fixture
 def brain_api(train_config):
-    api = BrainAPI(
-        access_key=train_config.accesskey,
-        username=train_config.username,
-        api_url=train_config.url
-    )
+    api = BrainAPI(train_config)
     return api
 
 
@@ -600,7 +610,7 @@ def temp_dot_bonsai():
     a Config profiles to the disk. The tests that require
     checking parameters in these profiles should use this fixture
     """
-    temp_dir = mkdtemp()
+    temp_dir = mkdtemp('')
     home_dir = os.environ["HOME"] if "HOME" in os.environ else ""
     os.environ["HOME"] = temp_dir
 
@@ -613,17 +623,17 @@ def temp_dot_bonsai():
     yield
 
     os.environ["HOME"] = home_dir
-    rmtree(cast(str, temp_dir))
+    rmtree(temp_dir)
 
 
 @pytest.yield_fixture()
 def temp_directory():
-    temp_dir = mkdtemp()
+    temp_dir = mkdtemp('')
     cur_dir = os.getcwd()
     os.chdir(temp_dir)
     yield
     os.chdir(cur_dir)
-    rmtree(cast(str, temp_dir))
+    rmtree(temp_dir)
 
 
 @pytest.yield_fixture()

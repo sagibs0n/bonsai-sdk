@@ -1,6 +1,4 @@
 import bonsai_ai
-from random import randint
-from time import clock
 import sys
 
 

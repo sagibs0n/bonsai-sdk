@@ -1,11 +1,11 @@
-import gym
 import argparse
+import gym
 import logging
 import os
-from time import sleep, time
-from bonsai_ai import Simulator, Brain, Config
+
+from bonsai_ai import Simulator
 from bonsai_ai.logger import Logger
-import sys
+from time import sleep, time
 
 # log = logging.getLogger(__name__)
 log = logging.getLogger('gym_simulator')

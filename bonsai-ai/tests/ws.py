@@ -168,7 +168,6 @@ class BonsaiWS(websocket.WebSocketHandler):
 
     @count_me
     def on_message(self, in_bytes):
-
         # dummy message and response for testing libbonsai's custom
         # websocket client
         if in_bytes == b"foobar":

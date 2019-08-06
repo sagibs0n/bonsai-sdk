@@ -1,5 +1,4 @@
 import logging
-import sys
 from setuptools import setup, find_packages
 
 logging.basicConfig(level=logging.DEBUG)
