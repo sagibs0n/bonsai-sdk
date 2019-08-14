@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.0
+- #12347: Map workspaces to API url in token cache
+
 ## 2.1.6
 - #11688: Add RequestId header to all requests
 - #11815  Aria telemetry

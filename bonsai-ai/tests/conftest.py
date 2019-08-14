@@ -6,6 +6,8 @@ import sys
 import pytest
 import requests
 import time
+import json
+import msal
 from tempfile import mkdtemp
 from shutil import rmtree
 from urllib.parse import urlparse
@@ -191,6 +193,80 @@ def v2_get(monkeypatch):
         response.json.return_value = test_json
         return response
     monkeypatch.setattr(requests.Session, 'get', _get)
+
+
+@pytest.fixture
+def aad_workspace(monkeypatch):
+    def _get(*args, **kwargs):
+        response = cast(Any, Mock())
+        test_json = {'properties': {'isAdmin': 'False',
+                                    'workspace': '123456789'}}
+        response.json.return_value = test_json
+        return response
+    monkeypatch.setattr(requests.Session, 'get', _get)
+
+
+@pytest.fixture
+def aad_get_accounts(monkeypatch):
+    def _get_accounts(*args, **kwargs):
+        return [{'username': 'foo@microsoft.com'}]
+    monkeypatch.setattr(msal.PublicClientApplication,
+                        'get_accounts', _get_accounts)
+
+
+@pytest.fixture
+def aad_get_accounts_empty(monkeypatch):
+    def _return_none(*args, **kwargs):
+        return None
+    monkeypatch.setattr(msal.PublicClientApplication,
+                        'get_accounts', _return_none)
+
+
+@pytest.fixture
+def aad_token_cache(monkeypatch):
+    def _acquire_token_silent(*args, **kwargs):
+        return {'access_token': 'abcd'}
+    monkeypatch.setattr(msal.PublicClientApplication,
+                        'acquire_token_silent',
+                        _acquire_token_silent)
+
+
+@pytest.fixture
+def aad_get_accounts_fail_first(monkeypatch):
+    def _get_accounts(*args, **kwargs):
+        # return None the first time around, to simulate an empty cache
+        if _get_accounts.count < 1:
+            _get_accounts.count += 1
+            return None
+        else:
+            return [{'username': 'foo@microsoft.com'}]
+    _get_accounts.count = 0
+    monkeypatch.setattr(msal.PublicClientApplication,
+                        'get_accounts', _get_accounts)
+
+
+@pytest.fixture
+def aad_username_password(monkeypatch):
+    def _acquire_token_by_username_password(*args, **kwargs):
+        return {'access_token': 'abcd'}
+    monkeypatch.setattr(msal.PublicClientApplication,
+                        'acquire_token_by_username_password',
+                        _acquire_token_by_username_password)
+
+
+@pytest.fixture
+def aad_device_code(monkeypatch):
+    def _initiate_device_flow(*args, **kwargs):
+        return {'message': 'Device code flow prompt.'}
+    monkeypatch.setattr(msal.PublicClientApplication,
+                        'initiate_device_flow',
+                        _initiate_device_flow)
+
+    def _acquire_token_by_device_flow(*args, **kwargs):
+        return {'access_token': 'abcd'}
+    monkeypatch.setattr(msal.PublicClientApplication,
+                        'acquire_token_by_device_flow',
+                        _acquire_token_by_device_flow)
 
 
 @pytest.fixture
@@ -575,6 +651,7 @@ def brain_controller(train_config):
     controller = BrainController(train_config)
     return controller
 
+
 def pytest_addoption(parser):
     parser.addoption("--protocol", action="store",
                      help="Path to message JSON")
@@ -619,6 +696,57 @@ def temp_dot_bonsai():
                    username='admin',
                    accesskey='00000000-1111-2222-3333-000000000001',
                    url='http://127.0.0.1')
+
+    yield
+
+    os.environ["HOME"] = home_dir
+    rmtree(temp_dir)
+
+
+@pytest.yield_fixture(scope='function')
+def temp_dot_bonsai_general():
+    """
+    This fixture creates a temporary directory and writes a Config
+    profile to the disk. Fixture arguments can be used to control the
+    contents of the config profile.
+    """
+    temp_dir = mkdtemp('')
+    home_dir = os.environ["HOME"] if "HOME" in os.environ else ""
+    os.environ["HOME"] = temp_dir
+
+    def _temp_dot_bonsai_general(username=False, accesskey=False):
+        config = Config()
+        entries = {'profile': 'dev', 'url':'http://127.0.0.1'}
+        if username:
+            entries['username'] = 'admin'
+        if accesskey:
+            entries['accesskey'] = '00000000-1111-2222-3333-000000000001'
+        config._update(**entries)
+
+    yield _temp_dot_bonsai_general
+
+    os.environ["HOME"] = home_dir
+    rmtree(temp_dir)
+
+
+@pytest.yield_fixture(scope='module')
+def temp_aad_cache():
+    """
+    This fixture creates a temporary HOME directory and writes
+    an AAD cache file to the disk.
+    """
+    temp_dir = mkdtemp('')
+    home_dir = os.environ["HOME"] if "HOME" in os.environ else ""
+    os.environ["HOME"] = temp_dir
+
+    cache_data = {
+        'BONSAI_WORKSPACES': {'https://foo.bons.ai': 'foo'},
+        'AccessToken': 'access',
+        'RefreshToken': 'refresh',
+    }
+
+    with open(os.path.join(temp_dir, '.aadcache'), 'w') as cache_file:
+        json.dump(cache_data, cache_file)
 
     yield
 

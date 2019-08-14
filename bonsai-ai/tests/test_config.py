@@ -3,8 +3,10 @@ import os
 import pytest
 import sys
 import json
+import atexit
 
 from bonsai_ai import Config
+from bonsai_ai.aad import write_cache_to_file, AADClient
 from bonsai_ai.logger import Logger
 
 
@@ -282,6 +284,109 @@ def test_config_update_creates_profile(temp_dot_bonsai):
 
 def test_config_works_if_permission_error(temp_home_directory_read_only):
     config = Config()
+
+
+def test_legacy_auth_control_plane_with_accesskey(temp_dot_bonsai_general):
+    temp_dot_bonsai_general(username=True, accesskey=True)
+    config = Config(argv=sys.argv,
+                    profile='dev',
+                    control_plane_auth=True,
+                    use_aad=False)
+    assert not config.use_aad
+    assert config._aad_client is None
+    assert config.accesskey == '00000000-1111-2222-3333-000000000001'
+    assert config.username == 'admin'
+    assert config.url.startswith('http://127.0.0.1')
+
+
+def test_aad_config_data_plane_with_accesskey(temp_dot_bonsai_general,
+                                              aad_get_accounts,
+                                              aad_token_cache):
+    temp_dot_bonsai_general(username=True, accesskey=True)
+    config = Config(argv=sys.argv, profile='dev', use_aad=True)
+    assert config.use_aad
+    assert config._aad_client is None
+    assert config.accesskey == '00000000-1111-2222-3333-000000000001'
+    assert config.username == 'admin'
+    assert config.url.startswith('http://127.0.0.1')
+
+
+def test_aad_config_data_plane_no_accesskey(temp_dot_bonsai_general,
+                                            aad_workspace,
+                                            aad_get_accounts,
+                                            aad_token_cache):
+    temp_dot_bonsai_general(username=True, accesskey=False)
+    config = Config(argv=sys.argv, profile='dev', use_aad=True)
+    assert config.use_aad
+    assert isinstance(config._aad_client, AADClient)
+    assert config.accesskey == 'Bearer abcd'
+    assert config.username == '123456789'
+    assert config.url.startswith('http://127.0.0.1')
+    # not testing AADClient, avoid stack trace
+    atexit.unregister(write_cache_to_file)
+
+
+def test_aad_config_data_plane_url_only(temp_dot_bonsai_general,
+                                        aad_workspace,
+                                        aad_get_accounts,
+                                        aad_token_cache):
+    temp_dot_bonsai_general(username=False, accesskey=False)
+    config = Config(argv=sys.argv, profile='dev', use_aad=True)
+    assert config.use_aad
+    assert isinstance(config._aad_client, AADClient)
+    assert config.accesskey == 'Bearer abcd'
+    assert config.username == '123456789'
+    assert config.url.startswith('http://127.0.0.1')
+    # not testing AADClient, avoid stack trace
+    atexit.unregister(write_cache_to_file)
+
+
+def test_aad_config_data_plane_url_accesskey(temp_dot_bonsai_general,
+                                             aad_workspace,
+                                             aad_get_accounts,
+                                             aad_token_cache):
+    temp_dot_bonsai_general(username=False, accesskey=True)
+    config = Config(argv=sys.argv, profile='dev', use_aad=True)
+    assert config.use_aad
+    assert config._aad_client is None
+    assert config.accesskey == '00000000-1111-2222-3333-000000000001'
+    assert config.username is None
+    assert config.url.startswith('http://127.0.0.1')
+
+
+def test_aad_config_control_plane_url_only(temp_dot_bonsai_general,
+                                           aad_workspace,
+                                           aad_get_accounts,
+                                           aad_token_cache):
+    temp_dot_bonsai_general(username=False, accesskey=False)
+    config = Config(argv=sys.argv,
+                    profile='dev',
+                    control_plane_auth=True,
+                    use_aad=True)
+    assert config.use_aad
+    assert isinstance(config._aad_client, AADClient)
+    assert config.accesskey == 'Bearer abcd'
+    assert config.username == '123456789'
+    assert config.url.startswith('http://127.0.0.1')
+    # not testing AADClient, avoid stack trace
+    atexit.unregister(write_cache_to_file)
+
+
+def test_aad_config_control_plane(temp_dot_bonsai,
+                                  aad_workspace,
+                                  aad_get_accounts,
+                                  aad_token_cache):
+    config = Config(argv=sys.argv,
+                    profile='dev',
+                    control_plane_auth=True,
+                    use_aad=True)
+    assert config.use_aad
+    assert isinstance(config._aad_client, AADClient)
+    assert config.accesskey == 'Bearer abcd'
+    assert config.username == '123456789'
+    assert config.url.startswith('http://127.0.0.1')
+    # not testing AADClient, avoid stack trace
+    atexit.unregister(write_cache_to_file)
 
 
 if __name__ == '__main__':

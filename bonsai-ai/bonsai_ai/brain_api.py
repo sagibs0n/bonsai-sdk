@@ -290,8 +290,9 @@ class BrainAPI():
         :param response: The response from the server.
         """
         try:
-            message = 'Request failed with error message:\n{}'.format(
-                response.json()["error"])
+            message = 'Request failed with error code "{}", error message:\n{}'.format(
+                response.json()["error"]["code"],
+                response.json()["error"]["message"])
         except ValueError:
             message = 'Request failed.'
 

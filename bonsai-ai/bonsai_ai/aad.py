@@ -1,5 +1,6 @@
 # pyright: strict
 import os
+import sys
 import atexit
 import requests
 from uuid import uuid4
@@ -114,6 +115,7 @@ class AADClient(object):
             begin authentication. """
         flow = self._app.initiate_device_flow(_AAD_SCOPE)
         print(flow["message"])
+        sys.stdout.flush()  # needed to print on Windows
         return self._app.acquire_token_by_device_flow(flow)
 
     def _log_in_with_password(self) -> dict:
@@ -161,7 +163,7 @@ class AADClient(object):
     def get_workspace(self):
 
         # attempt to get workspace from cache
-        workspace = self.cache.get_workspace()
+        workspace = self.cache.get_workspace(self._base_url)
         if workspace:
             return workspace
 
@@ -171,5 +173,5 @@ class AADClient(object):
         # get workspace, store to cache and return
         helper = AADRequestHelper(self._base_url, auth_token)
         self.workspace = helper.get_workspace()
-        self.cache.set_workspace(self.workspace)
+        self.cache.add_workspace(self._base_url, self.workspace)
         return self.workspace
