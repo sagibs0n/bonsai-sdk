@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.1
+- #12421: Remove ability to connect simulators using AAD (should use access keys)
+
 ## 2.2.0
 - #12347: Map workspaces to API url in token cache
 

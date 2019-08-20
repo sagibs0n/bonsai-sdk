@@ -318,9 +318,9 @@ def test_aad_config_data_plane_no_accesskey(temp_dot_bonsai_general,
     temp_dot_bonsai_general(username=True, accesskey=False)
     config = Config(argv=sys.argv, profile='dev', use_aad=True)
     assert config.use_aad
-    assert isinstance(config._aad_client, AADClient)
-    assert config.accesskey == 'Bearer abcd'
-    assert config.username == '123456789'
+    assert config._aad_client is None
+    assert config.accesskey is None
+    assert config.username == 'admin'
     assert config.url.startswith('http://127.0.0.1')
     # not testing AADClient, avoid stack trace
     atexit.unregister(write_cache_to_file)
@@ -333,9 +333,9 @@ def test_aad_config_data_plane_url_only(temp_dot_bonsai_general,
     temp_dot_bonsai_general(username=False, accesskey=False)
     config = Config(argv=sys.argv, profile='dev', use_aad=True)
     assert config.use_aad
-    assert isinstance(config._aad_client, AADClient)
-    assert config.accesskey == 'Bearer abcd'
-    assert config.username == '123456789'
+    assert config._aad_client is None
+    assert config.accesskey is None
+    assert config.username is None
     assert config.url.startswith('http://127.0.0.1')
     # not testing AADClient, avoid stack trace
     atexit.unregister(write_cache_to_file)

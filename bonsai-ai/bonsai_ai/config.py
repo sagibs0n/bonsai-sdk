@@ -211,13 +211,6 @@ class Config(object):
                 # allow connecting with accesskey on the data plane
                 # if there is one
                 pass
-            elif self.use_aad:
-                # no access key provided, so set the initial access token
-                # and the flag so that we know to attempt token refresh
-                self._aad_client = AADClient(str(self.url))
-                self.accesskey = self._aad_client.get_access_token()
-                if fetch_workspace:
-                    self.username = self._aad_client.get_workspace()
 
     def __repr__(self):
         """ Prints out a JSON formatted string of the Config state. """
@@ -302,6 +295,10 @@ class Config(object):
             self.accesskey = self._aad_client.get_access_token()
             if not self.accesskey:
                 raise AuthenticationError('Could not refresh AAD bearer token.')
+
+    def write_aad_cache(self):
+        if self._aad_client:
+            self._aad_client.cache.write_cache_to_file()
 
     def _parse_env(self):
         ''' parse out environment variables used in hosted containers '''
