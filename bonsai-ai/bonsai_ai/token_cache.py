@@ -24,10 +24,11 @@ class BonsaiTokenCache(SerializableTokenCache):
 
     def __init__(self):
         super().__init__()
-        if 'HOME' in os.environ:
-            self._cache_file = os.path.join(os.environ['HOME'], '.aadcache')
+        home = os.path.expanduser('~')
+        if len(home) > 0:
+            self._cache_file = os.path.join(home, '.aadcache')
         else:
-            self._cache_file = os.path.join(os.getcwd(), '.aadcache')
+            raise Exception('Unable to find home directory.')
         try:
             with open(self._cache_file, 'r') as f:
                 self.deserialize(f.read())

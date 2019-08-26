@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.2
+- IcM/141829256: fix to prevent bonsai cli from writing .aadcache file to a local directory
+
 ## 2.2.1
 - #12421: Remove ability to connect simulators using AAD (should use access keys)
 
