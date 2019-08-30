@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.3
+- #12310: Add check for closed websocket on pongs
+
 ## 2.2.2
 - IcM/141829256: fix to prevent bonsai cli from writing .aadcache file to a local directory
 

@@ -130,9 +130,9 @@ class SimulatorConnection(object):
 
     def _pong(self):
         with self.lock:
-            if self._ws:
+            if self._ws and not self._ws.closed:
                 log.network('Sending Pong')
-                #TODO #10532: Make coroutine when upgrading aiohttp
+                # Make this a coroutine if upgrading aiohttp
                 self._ws.pong()
 
     def _handle_reconnect(self):
