@@ -703,32 +703,6 @@ def temp_dot_bonsai():
     rmtree(temp_dir)
 
 
-@pytest.yield_fixture(scope='function')
-def temp_dot_bonsai_general():
-    """
-    This fixture creates a temporary directory and writes a Config
-    profile to the disk. Fixture arguments can be used to control the
-    contents of the config profile.
-    """
-    temp_dir = mkdtemp('')
-    home_dir = os.environ["HOME"] if "HOME" in os.environ else ""
-    os.environ["HOME"] = temp_dir
-
-    def _temp_dot_bonsai_general(username=False, accesskey=False):
-        config = Config()
-        entries = {'profile': 'dev', 'url':'http://127.0.0.1'}
-        if username:
-            entries['username'] = 'admin'
-        if accesskey:
-            entries['accesskey'] = '00000000-1111-2222-3333-000000000001'
-        config._update(**entries)
-
-    yield _temp_dot_bonsai_general
-
-    os.environ["HOME"] = home_dir
-    rmtree(temp_dir)
-
-
 @pytest.yield_fixture(scope='module')
 def temp_aad_cache():
     """

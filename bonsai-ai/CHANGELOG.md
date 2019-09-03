@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.4
+- Added a network log message after pong is sent
+- #12423: Config class no longer accepts plane and workspace parameters
+
 ## 2.2.3
 - #12310: Add check for closed websocket on pongs
 

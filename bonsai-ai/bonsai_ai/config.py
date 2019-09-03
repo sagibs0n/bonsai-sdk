@@ -147,9 +147,7 @@ class Config(object):
     def __init__(self,
                  argv=sys.argv,
                  profile=None,
-                 control_plane_auth=False,
-                 use_aad=False,
-                 fetch_workspace=True):
+                 use_aad=False):
         """
         Construct Config object with program arguments.
         Pass in sys.argv for command-line arguments and an
@@ -196,21 +194,10 @@ class Config(object):
 
         self._aad_client = None
 
-        if control_plane_auth:
-            if self.use_aad:
-                self._aad_client = AADClient(str(self.url))
-                self.accesskey = self._aad_client.get_access_token()
-                if fetch_workspace:
-                    self.username = self._aad_client.get_workspace()
-            else:
-                # use legacy auth (bonsai accesskey)
-                pass
-        else:
-            # we are connecting over data plane
-            if self.accesskey:
-                # allow connecting with accesskey on the data plane
-                # if there is one
-                pass
+        if self.use_aad:
+            self._aad_client = AADClient(str(self.url))
+            self.accesskey = self._aad_client.get_access_token()
+            self.username = self._aad_client.get_workspace()
 
     def __repr__(self):
         """ Prints out a JSON formatted string of the Config state. """
