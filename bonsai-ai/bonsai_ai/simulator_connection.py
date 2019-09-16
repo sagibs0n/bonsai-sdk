@@ -107,6 +107,10 @@ class SimulatorConnection(object):
         except WSServerHandshakeError as e:
             log.info("Failed to connect: {}, Request ID: {}".format(
                 repr(e), request_id))
+            if e.code == 403:
+                log.info('A 403 forbidden error indicates that you do not have'
+                         ' access this resource. Please run bonsai configure'
+                         ' and ensure that you have access to the service.')
             if e.headers is not None:
                 try:
                     log.info('Span ID: {}'.format(e.headers['SpanID']))
@@ -245,6 +249,11 @@ class SimulatorConnection(object):
             if message.code == 401:
                 raise BonsaiServerError(
                     'Error while connecting to websocket: 401 - Unauthorized. '
+                    'Please run \'bonsai configure\' again.')
+            if message.code == 403:
+                raise BonsaiServerError(
+                    'Error while connecting to websocket: 403 - Forbidden. '
+                    'You may be using deprecated authorization methods. '
                     'Please run \'bonsai configure\' again.')
             if message.code == 404:
                 raise BonsaiServerError(

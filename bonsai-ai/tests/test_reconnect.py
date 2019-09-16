@@ -72,6 +72,18 @@ def test_reconnect_http_error_401(auth_sim, capsys):
     auth_sim.close()
 
 
+def test_reconnect_http_error_403(forbidden_sim, capsys):
+    counter = 0
+    while forbidden_sim.run():
+        if counter == 100:
+            assert False
+        counter += 1
+    out, err = capsys.readouterr()
+    # Assert 403 occurs once and no reconnects attempts happen
+    assert err.count('403 - Forbidden') == 1
+    forbidden_sim.close()
+
+
 def test_reconnect_http_error_404(train_sim, capsys):
     train_sim.brain.config.username = 'bob'
     counter = 0

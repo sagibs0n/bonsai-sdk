@@ -225,7 +225,7 @@ def aad_get_accounts_empty(monkeypatch):
 @pytest.fixture
 def aad_token_cache(monkeypatch):
     def _acquire_token_silent(*args, **kwargs):
-        return {'access_token': 'abcd'}
+        return {'access_token': 'abcdefghijklmnopqrstuvwxyz'}
     monkeypatch.setattr(msal.PublicClientApplication,
                         'acquire_token_silent',
                         _acquire_token_silent)
@@ -248,7 +248,7 @@ def aad_get_accounts_fail_first(monkeypatch):
 @pytest.fixture
 def aad_username_password(monkeypatch):
     def _acquire_token_by_username_password(*args, **kwargs):
-        return {'access_token': 'abcd'}
+        return {'access_token': 'abcdefghijklmnopqrstuvwxyz'}
     monkeypatch.setattr(msal.PublicClientApplication,
                         'acquire_token_by_username_password',
                         _acquire_token_by_username_password)
@@ -263,7 +263,7 @@ def aad_device_code(monkeypatch):
                         _initiate_device_flow)
 
     def _acquire_token_by_device_flow(*args, **kwargs):
-        return {'access_token': 'abcd'}
+        return {'access_token': 'abcdefghijklmnopqrstuvwxyz'}
     monkeypatch.setattr(msal.PublicClientApplication,
                         'acquire_token_by_device_flow',
                         _acquire_token_by_device_flow)
@@ -425,6 +425,17 @@ def auth_config():
         '--disable-telemetry',
     ])
 
+@pytest.fixture
+def forbidden_config():
+    return Config([
+        __name__,
+        '--accesskey=VALUE',
+        '--username=forbidden',
+        '--url=http://127.0.0.1:9000',
+        '--brain=cartpole',
+        '--disable-telemetry',
+    ])
+
 
 @pytest.fixture
 def flaky_train_config():
@@ -552,6 +563,14 @@ def train_sim(train_config, request):
 def auth_sim(auth_config, request):
     requests.patch("http://127.0.0.1:9000/cartpole")
     brain = Brain(auth_config)
+    sim = CartSim(brain, 'cartpole_simulator')
+    return sim
+
+
+@pytest.fixture
+def forbidden_sim(forbidden_config, request):
+    requests.patch("http://127.0.0.1:9000/cartpole")
+    brain = Brain(forbidden_config)
     sim = CartSim(brain, 'cartpole_simulator')
     return sim
 
@@ -693,8 +712,8 @@ def temp_dot_bonsai():
 
     config = Config()
     config._update(profile='dev',
-                   username='admin',
-                   accesskey='00000000-1111-2222-3333-000000000001',
+                   username='123456789',
+                   accesskey='abcdefghijklmnopqrstuvwxyz',
                    url='http://127.0.0.1')
 
     yield
@@ -714,7 +733,6 @@ def temp_aad_cache():
     os.environ["HOME"] = temp_dir
 
     cache_data = {
-        'BONSAI_WORKSPACES': {'https://foo.bons.ai': 'foo'},
         'AccessToken': 'access',
         'RefreshToken': 'refresh',
     }

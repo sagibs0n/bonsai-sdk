@@ -169,14 +169,14 @@ def test_config_with_argv():
 
 def test_config_with_argv_and_dev_profile(temp_dot_bonsai):
     config = Config(argv=sys.argv, profile='dev')
-    assert config.accesskey == '00000000-1111-2222-3333-000000000001'
-    assert config.username == 'admin'
+    assert config.accesskey == 'abcdefghijklmnopqrstuvwxyz'
+    assert config.username == '123456789'
     assert config.url.startswith('http://127.0.0.1')
 
 
 def test_config_with_different_profile(temp_dot_bonsai):
     config = Config(profile='dev')
-    assert config.accesskey == '00000000-1111-2222-3333-000000000001'
+    assert config.accesskey == 'abcdefghijklmnopqrstuvwxyz'
 
 
 def test_config_with_missing_profile():
@@ -187,8 +187,8 @@ def test_config_with_missing_profile():
 def test_config_assignments(temp_dot_bonsai):
     config = Config(profile='dev')
     assert config.url == 'http://127.0.0.1'
-    assert config.username == 'admin'
-    assert config.accesskey == '00000000-1111-2222-3333-000000000001'
+    assert config.username == '123456789'
+    assert config.accesskey == 'abcdefghijklmnopqrstuvwxyz'
 
 
 def test_config_default_url(temp_dot_bonsai):
@@ -293,7 +293,7 @@ def test_aad_control_plane(temp_dot_bonsai,
     config = Config(argv=sys.argv, profile='dev', use_aad=True)
     assert config.use_aad
     assert isinstance(config._aad_client, AADClient)
-    assert config.accesskey == 'Bearer abcd'
+    assert config.accesskey == 'Bearer abcdefghijklmnopqrstuvwxyz'
     assert config.username == '123456789'
     assert config.url.startswith('http://127.0.0.1')
     # not testing AADClient, avoid stack trace
@@ -304,8 +304,8 @@ def test_aad_data_plane(temp_dot_bonsai):
     config = Config(argv=sys.argv, profile='dev', use_aad=False)
     assert not config.use_aad
     assert config._aad_client is None
-    assert config.accesskey == '00000000-1111-2222-3333-000000000001'
-    assert config.username == 'admin'
+    assert config.accesskey == 'abcdefghijklmnopqrstuvwxyz'
+    assert config.username == '123456789'
     assert config.url.startswith('http://127.0.0.1')
 
 

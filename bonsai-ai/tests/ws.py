@@ -31,7 +31,7 @@ USER_STATUS = {'brains': [{'name': "cartpole"}]}
 
 
 class BrainRequestHandler(web.RequestHandler):
-    _SLOW = False
+    _SLOW = False # type: bool
 
     def get(self):
         if self._SLOW:

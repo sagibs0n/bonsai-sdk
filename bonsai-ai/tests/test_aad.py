@@ -23,7 +23,7 @@ def test_helper_get_workspace(aad_workspace, aad_get_accounts):
 
 def test_client_from_cache(aad_workspace, aad_get_accounts, aad_token_cache):
     client = AADClient(_DUMMY_API_URL)
-    assert client.get_access_token() == 'Bearer abcd'
+    assert client.get_access_token() == 'Bearer abcdefghijklmnopqrstuvwxyz'
     assert client.get_workspace() == '123456789'
 
 
@@ -34,7 +34,7 @@ def test_empty_client_username_password(aad_workspace,
     os.environ['BONSAI_AAD_USER'] = 'username'
     os.environ['BONSAI_AAD_PASSWORD'] = 'password'
     client = AADClient(_DUMMY_API_URL)
-    assert client.get_access_token() == 'Bearer abcd'
+    assert client.get_access_token() == 'Bearer abcdefghijklmnopqrstuvwxyz'
     assert client.get_workspace() == '123456789'
     del os.environ['BONSAI_AAD_USER']
     del os.environ['BONSAI_AAD_PASSWORD']
@@ -45,5 +45,5 @@ def test_empty_client_device_code(aad_workspace,
                                   aad_token_cache,
                                   aad_device_code):
     client = AADClient(_DUMMY_API_URL)
-    assert client.get_access_token() == 'Bearer abcd'
+    assert client.get_access_token() == 'Bearer abcdefghijklmnopqrstuvwxyz'
     assert client.get_workspace() == '123456789'

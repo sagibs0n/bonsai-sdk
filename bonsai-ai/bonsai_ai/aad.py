@@ -162,16 +162,10 @@ class AADClient(object):
 
     def get_workspace(self):
 
-        # attempt to get workspace from cache
-        workspace = self.cache.get_workspace(self._base_url)
-        if workspace:
-            return workspace
-
         # make sure we have access token to request workspace
         auth_token = self.get_access_token()
 
         # get workspace, store to cache and return
         helper = AADRequestHelper(self._base_url, auth_token)
         self.workspace = helper.get_workspace()
-        self.cache.add_workspace(self._base_url, self.workspace)
         return self.workspace

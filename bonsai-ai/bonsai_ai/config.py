@@ -147,7 +147,8 @@ class Config(object):
     def __init__(self,
                  argv=sys.argv,
                  profile=None,
-                 use_aad=False):
+                 use_aad=False,
+                 require_workspace=True):
         """
         Construct Config object with program arguments.
         Pass in sys.argv for command-line arguments and an
@@ -197,7 +198,10 @@ class Config(object):
         if self.use_aad:
             self._aad_client = AADClient(str(self.url))
             self.accesskey = self._aad_client.get_access_token()
-            self.username = self._aad_client.get_workspace()
+            if require_workspace and not self.username:
+                log.info('WARNING: No workspace was found in your '
+                         'configuration. Please run bonsai configure.')
+                self.username = self._aad_client.get_workspace()
 
     def __repr__(self):
         """ Prints out a JSON formatted string of the Config state. """

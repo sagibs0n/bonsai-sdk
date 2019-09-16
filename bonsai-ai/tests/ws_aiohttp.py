@@ -188,6 +188,7 @@ class BonsaiWS:
 
     def reset_flags(self):
         self._UNAUTHORIZED = False
+        self._FORBIDDEN = False
         self._FLAKY = False
         self._PREDICT = False
         self._EOFSTREAM = False
@@ -217,6 +218,11 @@ class BonsaiWS:
     async def auth_train(self, request):
         self.reset_flags()
         self._UNAUTHORIZED = True
+        return await self.handle_msg(request)
+
+    async def forbidden_train(self, request):
+        self.reset_flags()
+        self._FORBIDDEN = True
         return await self.handle_msg(request)
 
     async def flaky_train(self, request):
@@ -291,6 +297,9 @@ class BonsaiWS:
         self._prev = ServerToSimulator.UNKNOWN
         if self._UNAUTHORIZED:
             return web.Response(status=401, text="Unauthorized")
+        
+        if self._FORBIDDEN:
+            return web.Response(status=403, text="Forbidden")
 
         if self._FLAKY and \
            self._count > self._fail_point and \
@@ -392,6 +401,8 @@ def open_bonsai_ws(protocol):
                        bonsai_ws.flaky_train)
     app.router.add_get('/v1/needsauth/cartpole/sims/ws',
                        bonsai_ws.auth_train)
+    app.router.add_get('/v1/forbidden/cartpole/sims/ws',
+                       bonsai_ws.forbidden_train)
     app.router.add_get('/v1/flake/cartpole/4/predictions/ws',
                        bonsai_ws.flaky_predict)
     app.router.add_get('/v1/eofstream/cartpole/sims/ws',

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.5
+- #12658: Stop storing workspace in .aadcache, use only .bonsai
+- #12704: Print helpful error messages on 403 errors in SDK
+
 ## 2.2.4
 - Added a network log message after pong is sent
 - #12423: Config class no longer accepts plane and workspace parameters
