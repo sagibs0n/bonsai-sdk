@@ -18,10 +18,22 @@ from requests.exceptions import (ConnectionError, Timeout)
 
 log = Logger()
 
+# Documentation on AAD configuration:
+# https://docs.microsoft.com/bs-latn-ba/azure/active-directory/develop/msal-client-application-configuration
+
 _AAD_CLIENT_ID = '23e69e0c-5143-40dd-90ca-a6a8cc478db5'
-_AAD_AUTHORITY = 'https://login.microsoftonline.com/organizations'
+_AAD_ORG_AUTHORITY = 'https://login.microsoftonline.com/organizations'
+_AAD_COMMON_AUTHORITY = 'https://login.microsoftonline.com/common'
 _AAD_SCOPE = ['api://23e69e0c-5143-40dd-90ca-a6a8cc478db5/Bonsai.Read']
 _USERPROPERTIES_URI = '/v1/userproperties'
+
+
+def use_password_auth() -> bool:
+    return ('BONSAI_AAD_USER' in os.environ and
+            'BONSAI_AAD_PASSWORD' in os.environ)
+
+# Password auth is not supported over the "common" authority, must use "organizations"
+_AAD_AUTHORITY = _AAD_ORG_AUTHORITY if use_password_auth() else _AAD_COMMON_AUTHORITY
 
 
 def write_cache_to_file(cache: BonsaiTokenCache):
@@ -71,6 +83,12 @@ class AADRequestHelper():
         response = self.perform_get(url)
         try:
             response_dict = response.json()
+            if response_dict.get('error'):
+                err = response_dict.get('error')
+                if err and err.get('code') and err.get('message'):
+                    raise AuthenticationError(err.get('code') + ': ' + 
+                                              err.get('message'))
+                raise AuthenticationError(err)
             return response_dict['properties']['workspace']
         except KeyError as e:
             message = 'Could not extract workspace from server response. ' \
@@ -147,8 +165,7 @@ class AADClient(object):
             return 'Bearer {}'.format(token['access_token'])
 
         # no token found in cache, user must sign in and try again
-        if ('BONSAI_AAD_USER' in os.environ and
-                'BONSAI_AAD_PASSWORD' in os.environ):
+        if (use_password_auth()):
             self._log_in_with_password()
         else:
             print('No access token found in cache, please sign in.')

@@ -1,8 +1,14 @@
 # Changelog
 
+## 2.2.6
+- Pin async_timeout version to 2.0.1
+- #13277: Update AuthenticationError when requesting AAD workspace
+- #13312: Update AAD authority to support MSA accounts
+
 ## 2.2.5
 - #12658: Stop storing workspace in .aadcache, use only .bonsai
 - #12704: Print helpful error messages on 403 errors in SDK
+- #12503: Ripped out vendored Aria code
 
 ## 2.2.4
 - Added a network log message after pong is sent

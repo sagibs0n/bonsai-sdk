@@ -207,6 +207,17 @@ def aad_workspace(monkeypatch):
 
 
 @pytest.fixture
+def aad_workspace_not_allow_listed(monkeypatch):
+    def _get(*args, **kwargs):
+        response = cast(Any, Mock())
+        test_json = {'error': {'code': 'NotAllowListed',
+                               'message': 'User not enabled'}}
+        response.json.return_value = test_json
+        return response
+    monkeypatch.setattr(requests.Session, 'get', _get)
+
+
+@pytest.fixture
 def aad_get_accounts(monkeypatch):
     def _get_accounts(*args, **kwargs):
         return [{'username': 'foo@microsoft.com'}]
@@ -337,7 +348,6 @@ def record_json_config():
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
         '--record=foobar.json',
-        '--disable-telemetry',
     ])
 
 
@@ -350,7 +360,6 @@ def record_csv_config():
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
         '--record=foobar.csv',
-        '--disable-telemetry',
     ])
 
 
@@ -364,7 +373,6 @@ def record_csv_config_predict():
         '--brain=cartpole',
         '--record=foobar.csv',
         '--predict=4',
-        '--disable-telemetry',
     ])
 
 
@@ -376,7 +384,6 @@ def train_config():
         '--username=alice',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
-        '--disable-telemetry',
     ])
 
 
@@ -389,7 +396,6 @@ def train_config_proxy_pair(proxy_server):
         '--url=http://127.0.0.1:9000',
         '--proxy={}'.format(proxy_server.uri),
         '--brain=cartpole',
-        '--disable-telemetry',
     ])
     return {'config': config, 'log_dir': proxy_server.log_dir}
 
@@ -410,7 +416,6 @@ def train_config_bad_proxy(proxy_server):
         '--url=http://127.0.0.1:9000',
         '--proxy={}'.format(bad_uri),
         '--brain=cartpole',
-        '--disable-telemetry',
     ])
 
 
@@ -422,7 +427,6 @@ def auth_config():
         '--username=needsauth',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
-        '--disable-telemetry',
     ])
 
 @pytest.fixture
@@ -433,7 +437,6 @@ def forbidden_config():
         '--username=forbidden',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
-        '--disable-telemetry',
     ])
 
 
@@ -445,7 +448,6 @@ def flaky_train_config():
         '--username=flake',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
-        '--disable-telemetry',
     ])
 
 
@@ -457,7 +459,6 @@ def eofstream_config():
         '--username=eofstream',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
-        '--disable-telemetry',
     ])
 
 
@@ -469,7 +470,6 @@ def error_msg_config():
         '--username=error_msg',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
-        '--disable-telemetry',
     ])
 
 
@@ -481,7 +481,6 @@ def pong_config():
         '--username=pong',
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
-        '--disable-telemetry',
     ])
 
 
@@ -495,7 +494,6 @@ def predict_config():
         '--url=http://127.0.0.1:9000',
         '--brain=cartpole',
         '--predict=4',
-        '--disable-telemetry',
     ])
 
 
@@ -504,7 +502,6 @@ def logging_config():
     Config([
         __name__,
         '--log', 'foo', 'baz',
-        '--disable-telemetry',
     ])
 
 

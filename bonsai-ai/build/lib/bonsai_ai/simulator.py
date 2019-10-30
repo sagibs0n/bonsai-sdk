@@ -430,7 +430,6 @@ class Simulator(object):
 
     def close(self):
         """ Closes websocket Connection """
-        self.brain._aria_writer.close()
         if self._impl._receive_handle:
             self._impl._receive_handle.cancel()
             try:

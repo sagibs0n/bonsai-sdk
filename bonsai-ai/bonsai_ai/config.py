@@ -181,7 +181,6 @@ class Config(object):
         self._config_parser = RawConfigParser(allow_no_value=True)
         self._read_config()
         self.profile = profile
-        self.disable_telemetry = False
 
         self._parse_env()
         self._parse_config(_DEFAULT)
@@ -216,8 +215,7 @@ class Config(object):
             '\"brain_version\": \"{self.brain_version!r}\", ' \
             '\"proxy\": \"{self.proxy!r}\", ' \
             '\"retry_timeout\": \"{self.retry_timeout!r}\", ' \
-            '\"network_timeout\": \"{self.network_timeout!r}\", ' \
-            '\"disable_telemetry\": \"{self.disable_telemetry!r}\" ' \
+            '\"network_timeout\": \"{self.network_timeout!r}\" ' \
             '}}'.format(self=self)
 
     @property
@@ -413,12 +411,6 @@ class Config(object):
                             help=_RETRY_TIMEOUT_HELP)
         parser.add_argument('--network-timeout', type=int,
                             help=_NETWORK_TIMEOUT_HELP)
-        parser.add_argument(
-            '--disable-telemetry',
-            dest='disable_telemetry',
-            action='store_true',
-        )
-        parser.set_defaults(disable_telemetry=False)
 
         args, remainder = parser.parse_known_args(argv[1:])
 
@@ -462,8 +454,6 @@ class Config(object):
 
         if args.network_timeout is not None:
             self.network_timeout = args.network_timeout
-
-        self.disable_telemetry = args.disable_telemetry
 
         brain_version = None
         if args.predict is not None:

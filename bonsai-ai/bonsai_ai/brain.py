@@ -7,7 +7,6 @@ import requests
 from bonsai_ai.common.utils import get_user_info
 from bonsai_ai.logger import Logger
 from bonsai_ai.brain_api import BrainAPI
-from .aria_writer import AriaWriter
 
 log = Logger()
 
@@ -65,10 +64,6 @@ class Brain(object):
         self._sims = None
         self.latest_version = None
         self._user_info = get_user_info()
-        self._aria_writer = AriaWriter(
-            cluster_url=config.url,
-            disable_telemetry=config.disable_telemetry
-        )
         self.update()
 
     def __repr__(self):

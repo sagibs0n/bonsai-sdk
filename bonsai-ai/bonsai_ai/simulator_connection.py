@@ -4,7 +4,6 @@ from threading import Lock, Thread, Event
 from uuid import uuid4
 from bonsai_ai.exceptions import BonsaiServerError, RetryTimeoutError
 from bonsai_ai.logger import Logger
-from .aria_writer import SimConnecting
 
 from aiohttp import ClientSession, WSServerHandshakeError, TCPConnector
 import asyncio
@@ -87,7 +86,6 @@ class SimulatorConnection(object):
                     proxy = "http://" + proxy
 
             log.network('trying to connect: {}'.format(url))
-            self._brain._aria_writer.track(SimConnecting(self._predict))
             self._session = ClientSession(
                 connector=TCPConnector(force_close=True)
             )

@@ -175,7 +175,6 @@ def test_run_subclass_without_simulate(train_config):
 def test_run_simulator_with_no_dot_bonsai_or_cl_args(
         temp_home_directory_read_only, capsys):
     config = Config()
-    config.disable_telemetry = True
     brain = Brain(config)
     sim = Simulator(brain, 'sim')
     sim.run()

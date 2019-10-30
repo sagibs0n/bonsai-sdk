@@ -1,7 +1,7 @@
 from datetime import datetime
 import sys
 from time import time
-from typing import cast, Any
+from typing import Any, Dict, Optional
 
 
 class Logger:
@@ -27,7 +27,7 @@ class Logger:
     ```
     """
 
-    _impl = None
+    _impl = None # type: Optional[Dict[str, Any]]
 
     def __init__(self):
         if self._impl is None:
@@ -38,10 +38,7 @@ class Logger:
             self._enable_all = False
             self.__class__._impl = self.__dict__
         else:
-            # Add cast to prevent the type checker from complaining
-            # here. It doesn't know that we're mutating the class
-            # below by writing to self.__class__._impl.
-            self.__dict__ = cast(Any, self._impl)
+            self.__dict__ = self._impl
 
     def __getattr__(self, attr):
         if self._enable_all or self._enabled_keys.get(attr, False):

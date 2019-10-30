@@ -1,6 +1,8 @@
 # Copyright (C) 2019 Microsoft, Inc.
 
 import os
+import pytest
+from bonsai_ai.exceptions import AuthenticationError
 from bonsai_ai.aad import (AADRequestHelper, AADClient)
 
 
@@ -19,6 +21,13 @@ def test_helper_get_workspace(aad_workspace, aad_get_accounts):
     helper = AADRequestHelper(_DUMMY_API_URL, _DUMMY_AUTH_TOKEN)
     workspace = helper.get_workspace()
     assert workspace == '123456789'
+
+
+def test_helper_not_allow_listed(aad_workspace_not_allow_listed,
+                                 aad_get_accounts):
+    helper = AADRequestHelper(_DUMMY_API_URL, _DUMMY_AUTH_TOKEN)
+    with pytest.raises(AuthenticationError) as e:
+        workspace = helper.get_workspace()
 
 
 def test_client_from_cache(aad_workspace, aad_get_accounts, aad_token_cache):
