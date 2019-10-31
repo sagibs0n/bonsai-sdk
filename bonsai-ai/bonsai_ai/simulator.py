@@ -121,8 +121,12 @@ class Simulator(object):
         self.brain = brain
         self.writer = None
         self._construct_writer()
-        self._ioloop = asyncio.get_event_loop()
-        self._impl = Simulator_WS(brain, self, name)
+        # Every simulator requires its own event loop, so that heartbeat tasks
+        # do not conflict with one another. Loops may be idle for arbitrarily
+        # long periods of time - if sim B awakens the loop while sim A is not
+        # currently being read, sim A's heartbeat disconnect will trip.
+        self._ioloop = asyncio.new_event_loop()
+        self._impl = Simulator_WS(brain, self, name, self._ioloop)
 
         # statistics
         self.episode_reward = 0
@@ -463,7 +467,9 @@ class Simulator(object):
         try:
             event = None
             event = self._ioloop.run_until_complete(
-                self._impl.get_next_event())
+                asyncio.ensure_future(
+                    self._impl.get_next_event(),
+                    loop=self._ioloop))
         except KeyboardInterrupt:
             event = FinishedEvent()
         except BonsaiClientError as e:
@@ -504,7 +510,10 @@ class Simulator(object):
         """
         try:
             success = False
-            success = self._ioloop.run_until_complete(self._impl.run())
+            success = self._ioloop.run_until_complete(
+                asyncio.ensure_future(
+                    self._impl.run(),
+                    loop=self._ioloop))
         except KeyboardInterrupt:
             pass
         except BonsaiClientError as e:

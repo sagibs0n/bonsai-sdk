@@ -38,12 +38,13 @@ class Simulator_WS(object):
             self.reward = 0.0
             self.terminal = False
 
-    def __init__(self, brain, sim, simulator_name):
+    def __init__(self, brain, sim, simulator_name, loop):
         self.brain = brain
         self.name = simulator_name
         self._sim = sim
         self._reset_simulator_ws()
-        self._sim_connection = SimulatorConnection(brain, sim.predict)
+        self._ioloop = loop
+        self._sim_connection = SimulatorConnection(brain, sim.predict, loop)
 
         # protobuf discriptor cache
         self._inkling = InklingMessageFactory()
@@ -301,7 +302,8 @@ class Simulator_WS(object):
         with self._sim_connection.lock:
             log.network('Waiting for message from server.')
             self._receive_handle = ensure_future(
-                self._sim_connection.client.receive())
+                self._sim_connection.client.receive(),
+                loop=self._ioloop)
             msg = await self._receive_handle
             log.network('Received message from server.')
 

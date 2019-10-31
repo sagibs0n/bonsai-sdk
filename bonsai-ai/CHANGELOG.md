@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.7
+- #13398: Provide each simulator with its own internal event loop
+
 ## 2.2.6
 - Pin async_timeout version to 2.0.1
 - #13277: Update AuthenticationError when requesting AAD workspace

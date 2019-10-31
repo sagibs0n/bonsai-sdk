@@ -6,7 +6,6 @@ from bonsai_ai.exceptions import BonsaiServerError, RetryTimeoutError
 from bonsai_ai.logger import Logger
 
 from aiohttp import ClientSession, WSServerHandshakeError, TCPConnector
-import asyncio
 
 from urllib.parse import urlparse
 
@@ -17,7 +16,7 @@ _PING_PONG_INTERVAL = 15.0
 
 class SimulatorConnection(object):
 
-    def __init__(self, brain, predict):
+    def __init__(self, brain, predict, loop):
         """
         Args:
             brain (bonsai_ai.Brain): Bonsai Brain object containing
@@ -38,7 +37,7 @@ class SimulatorConnection(object):
         self.read_timeout_seconds = 240
         self.lock = Lock()
         self._thread_stop = Event()
-        self._ioloop = asyncio.get_event_loop()
+        self._ioloop = loop
 
     @property
     def client(self):
@@ -87,7 +86,7 @@ class SimulatorConnection(object):
 
             log.network('trying to connect: {}'.format(url))
             self._session = ClientSession(
-                connector=TCPConnector(force_close=True)
+                connector=TCPConnector(force_close=True, loop=self._ioloop)
             )
 
             self._ws = await self._session.ws_connect(
