@@ -325,6 +325,9 @@ class Config(object):
         # if url is none set it to default bonsai api url
         if self.url is None:
             self.url = _DEFAULT_URL
+        elif not urlparse(self.url).scheme:
+            # if no url scheme is supplied, assume https
+            self.url = 'https://{}'.format(self.url)
 
     def _parse_brains(self):
         ''' parse the './.brains' config file

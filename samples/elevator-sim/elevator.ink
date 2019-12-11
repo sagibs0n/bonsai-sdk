@@ -1,6 +1,9 @@
 inkling "2.0"
 
 type ButtonState number<NotPressed = 0, Pressed = 1>
+experiment {
+    backend_type: "pdp2"
+}
 
 # Position is current location of elevator.
 type FloorState {
@@ -16,6 +19,8 @@ type Action {
 }
 
 # Connect to SimPy simulator for training
+# Simulator source code:
+# https://github.com/BonsaiAI/bonsai-sdk/blob/master/samples/elevator-sim/elevator.py
 simulator ElevatorSimulator(action: Action): FloorState {
 }
 

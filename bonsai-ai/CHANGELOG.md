@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.8
+- #13600: Assume https in url if no scheme is provided
+- #13588: Silence socket.send() exception
+
 ## 2.2.7
 - #13398: Provide each simulator with its own internal event loop
 

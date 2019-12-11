@@ -20,6 +20,8 @@ type SimAction {
 # The simulator clause declares that a simulator named "energyplus_simulator"
 # will be connecting to the server for training.
 # The following statements bind the above types to this simulator
+# Simulator source code:
+# https://github.com/BonsaiAI/bonsai-sdk/blob/master/samples/energyplus-sample/energyplus_simulator.py
 simulator EnergyplusSimulator(action: SimAction): SimState {
 }
 

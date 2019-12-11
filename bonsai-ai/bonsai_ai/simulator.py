@@ -184,7 +184,7 @@ class Simulator(object):
         """ Iterations per second. """
         return int(self._iteration_rate.rate)
 
-    def episode_start(self, episode_config):
+    def episode_start(self, episode_config) -> Any:
         """
         Called at the start of each new episode. This callback passes in a
         set of initial parameters and expects an initial state in return for
@@ -464,8 +464,8 @@ class Simulator(object):
             else:
                 # do nothing
         """
+        event = None
         try:
-            event = None
             event = self._ioloop.run_until_complete(
                 asyncio.ensure_future(
                     self._impl.get_next_event(),
@@ -508,8 +508,8 @@ class Simulator(object):
             while sim.run():
                 continue
         """
+        success = False
         try:
-            success = False
             success = self._ioloop.run_until_complete(
                 asyncio.ensure_future(
                     self._impl.run(),

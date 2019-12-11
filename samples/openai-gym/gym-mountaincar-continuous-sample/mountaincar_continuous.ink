@@ -19,6 +19,8 @@ type MountainCarConfig {
     deque_size: -1
 }
 
+# Simulator source code:
+# https://github.com/BonsaiAI/bonsai-sdk/blob/master/samples/openai-gym/gym-mountaincar-continuous-sample/mountaincar_continuous_simulator.py
 simulator MountainCarSimulator(action: Action, config: MountainCarConfig): GameState {
 }
 

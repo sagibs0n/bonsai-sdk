@@ -131,11 +131,37 @@ class SimulatorConnection(object):
 
     def _pong(self):
         with self.lock:
-            if self._ws and not self._ws.closed:
+            if self._ws and self._is_safe_to_send_pong():
                 log.network('Sending Pong.')
-                # Make this a coroutine if upgrading aiohttp
                 self._ws.pong()
                 log.network('Pong sent to server.')
+
+    def _is_safe_to_send_pong(self):
+        """
+        We check the private attributes of the websocket in order to determine if
+        it is safe to send a pong. This is necessary for the scenario where the service
+        becomes unavailable while we are in a long running simulation step. The SDK does
+        not know the websocket is closed until control is returned which results in a
+        "socket.send() raised exception" message being propagated up from deep inside
+        asyncio.
+        """
+        if self._ws.closed:
+            return False
+
+        if self._ws._conn is None:
+            return False
+
+        if self._ws._conn._protocol is None:
+            return False
+
+        if self._ws._conn._protocol.transport is None:
+            return False
+
+        if hasattr(self._ws._conn._protocol.transport, '_closing') and \
+            self._ws._conn._protocol.transport._closing:
+            return False
+
+        return True
 
     def _handle_reconnect(self):
         log.network('Handling reconnect')

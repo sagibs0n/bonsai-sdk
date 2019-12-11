@@ -1,6 +1,10 @@
 inkling "2.0"
 using Image
 
+experiment {
+    backend_type: "pdp-core"
+}
+
 type GameState {
     image: Image.Gray<9, 9>
 }
