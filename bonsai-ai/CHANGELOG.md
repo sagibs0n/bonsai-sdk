@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.9
+- #11789: Use Keyring to store secret auth tokens in the platform keystore
+
 ## 2.2.8
 - #13600: Assume https in url if no scheme is provided
 - #13588: Silence socket.send() exception

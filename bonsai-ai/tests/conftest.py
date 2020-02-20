@@ -11,6 +11,8 @@ import msal
 from tempfile import mkdtemp
 from shutil import rmtree
 from urllib.parse import urlparse
+import keyring
+from bonsai_ai.token_cache import BonsaiTokenCache
 
 from aiohttp import web
 from multiprocessing import Process
@@ -728,15 +730,16 @@ def temp_aad_cache():
     temp_dir = mkdtemp('')
     home_dir = os.environ["HOME"] if "HOME" in os.environ else ""
     os.environ["HOME"] = temp_dir
-
+    cache = BonsaiTokenCache()
     cache_data = {
         'AccessToken': 'access',
         'RefreshToken': 'refresh',
     }
-
-    with open(os.path.join(temp_dir, '.aadcache'), 'w') as cache_file:
-        json.dump(cache_data, cache_file)
-
+    if cache.secure_backend_available == True:
+        keyring.set_password('bonsai-ai', 'bonsai-user', json.dumps(cache_data))
+    else:
+        with open(os.path.join(temp_dir, '.aadcache'), 'w') as cache_file:
+            json.dump(cache_data, cache_file)
     yield
 
     os.environ["HOME"] = home_dir

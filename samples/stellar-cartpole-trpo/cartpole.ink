@@ -1,4 +1,6 @@
-# Inkling code for balancing a pole on a cart
+# Inkling code for balancing a pole on a cart.
+# Simulator source code:
+# https://github.com/BonsaiAI/bonsai-sdk/blob/master/samples/stellar-cartpole-trpo/cartpole_simulator.py
 
 inkling "2.0"
 
@@ -18,8 +20,6 @@ type CartPoleConfig {
     deque_size: 1
 }
 
-# Simulator source code:
-# https://github.com/BonsaiAI/bonsai-sdk/blob/master/samples/stellar-cartpole-trpo/cartpole_simulator.py
 simulator CartpoleSimulator(action: Action, config: CartPoleConfig): GameState {
 }
 

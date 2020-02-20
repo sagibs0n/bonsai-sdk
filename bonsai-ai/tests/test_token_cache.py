@@ -2,14 +2,9 @@
 
 from bonsai_ai.token_cache import BonsaiTokenCache
 
-
-def test_initialize_empty_cache(temp_home_directory_read_only):
-    cache = BonsaiTokenCache()
-    assert cache._cache == {}
-
-
 def test_initialize_cache_from_file(temp_aad_cache):
     cache = BonsaiTokenCache()
+    assert cache._cache is not None
     assert cache._cache['AccessToken'] == 'access'
     assert cache._cache['RefreshToken'] == 'refresh'
     

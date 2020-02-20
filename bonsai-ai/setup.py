@@ -37,6 +37,7 @@ setup(
         'async_timeout==2.0.1',
         'aiohttp==2.3.10',
         'msal>=0.8.0',
+        'keyring==19.2.0'
     ],
     python_requires='>=3.5',
     packages=find_packages(),

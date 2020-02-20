@@ -2,6 +2,7 @@
 import os
 import sys
 import atexit
+from typing import Dict
 import requests
 from uuid import uuid4
 from urllib.parse import urljoin
@@ -127,7 +128,7 @@ class AADClient(object):
                     raise e
             retry_count += 1
 
-    def _log_in_with_device_code(self) -> dict:
+    def _log_in_with_device_code(self) -> Dict[str, str]:
         """ Recommended login method. The user must open a browser to
             https://microsoft.com/devicelogin and enter a unique device code to
             begin authentication. """
@@ -136,7 +137,7 @@ class AADClient(object):
         sys.stdout.flush()  # needed to print on Windows
         return self._app.acquire_token_by_device_flow(flow)
 
-    def _log_in_with_password(self) -> dict:
+    def _log_in_with_password(self) -> Dict[str, str]:
         """ This login method is less secure and should be used for
             automation only. """
         return self._app.acquire_token_by_username_password(

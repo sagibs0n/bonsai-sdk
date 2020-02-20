@@ -138,7 +138,7 @@ class Simulator(object):
         self._reset_rate_counter = True
 
     def _construct_writer(self):
-        def raise_rte(fname):
+        def raise_rte(fname) -> None:
             raise RuntimeError(
                 """
                 Record file name must include a supported extension

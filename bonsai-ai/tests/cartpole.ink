@@ -1,39 +1,36 @@
-schema GameState
-    Float32 position,
-    Float32 velocity,
-    Float32 angle,
-    Float32 rotation
-end
+inkling "2.0"
+using Number
+type GameState {
+    position: Number.Float32,
+    velocity: Number.Float32,
+    angle: Number.Float32,
+    rotation: Number.Float32
+}
 
-schema Action
-    Int8{0, 1} command
-end
+type Action {
+    command: Number.Int8<0, 1, >
+}
 
-schema CartPoleConfig
-    Int8 episode_length,
-    UInt8 deque_size
-end
+type CartPoleConfig {
+    episode_length: Number.Int8,
+    deque_size: Number.UInt8
+}
 
-simulator cartpole_simulator(CartPoleConfig) 
-    action (Action)
-    state (GameState)
-end
+simulator cartpole_simulator(action: Action, config: CartPoleConfig): GameState {
+}
 
-concept balance is classifier
-    predicts (Action)
-    follows input(GameState)
-    feeds output
-end
+graph (input: GameState): Action {
 
-curriculum balance_curriculum
-    train balance
-    with simulator cartpole_simulator
-    objective open_ai_gym_default_objective
-
-        lesson balancing
-            configure
-                constrain episode_length with Int8{-1},
-                constrain deque_size with UInt8{1}
-            until
-                maximize open_ai_gym_default_objective
-end
+    concept balance(input): Action {
+        curriculum {
+            source cartpole_simulator
+            lesson balancing {
+                constraint {
+                    episode_length: -1,
+                    deque_size: 1
+                }
+            }
+        }
+    }
+    output balance
+}

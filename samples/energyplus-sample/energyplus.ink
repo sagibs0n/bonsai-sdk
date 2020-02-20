@@ -1,5 +1,7 @@
 # A minimal Inkling program for a BRAIN that learns how to operate climate
 # control using BCVTB and EnergyPlus.
+# Simulator source code:
+# https://github.com/BonsaiAI/bonsai-sdk/blob/master/samples/energyplus-sample/energyplus_simulator.py
 
 inkling "2.0"
 
@@ -20,8 +22,6 @@ type SimAction {
 # The simulator clause declares that a simulator named "energyplus_simulator"
 # will be connecting to the server for training.
 # The following statements bind the above types to this simulator
-# Simulator source code:
-# https://github.com/BonsaiAI/bonsai-sdk/blob/master/samples/energyplus-sample/energyplus_simulator.py
 simulator EnergyplusSimulator(action: SimAction): SimState {
 }
 
