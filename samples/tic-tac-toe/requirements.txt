@@ -1,4 +1,0 @@
-bonsai-ai>=2.2.8
-bonsai-cli>=0.8.25
-bonsai-gym>=2.0.13
-numpy

@@ -1,7 +1,0 @@
-{
-    "executable": "elevator_simulator.py",
-    "prediction": {
-        "episodes": 0,
-        "mean": 0 
-    }
-}
