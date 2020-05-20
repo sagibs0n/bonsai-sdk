@@ -7,3 +7,6 @@
 [submodule "samples/moabsim-py"]
 	path = samples/moabsim-py
 	url = git@github.com:BonsaiAI/moabsim-py
+[submodule "bonsai-api"]
+	path = bonsai-api
+	url = git@github.com:BonsaiAI/bonsai-api.git
