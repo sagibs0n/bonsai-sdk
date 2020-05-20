@@ -1,9 +1,0 @@
-[submodule "bonsai3-py"]
-	path = bonsai3-py
-	url = git@github.com:BonsaiAI/bonsai3-py.git
-[submodule "samples/moabsim-py"]
-	path = samples/moabsim-py
-	url = git@github.com:BonsaiAI/moabsim-py.git
-[submodule "samples/cartpole-py"]
-	path = samples/cartpole-py
-	url = git@github.com:BonsaiAI/cartpole-py.git
