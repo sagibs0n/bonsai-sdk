@@ -12,15 +12,16 @@ You can also use Pydoc for standard Python documentation built into this library
 ------
 ## Folders in this repository
 
+- **bonsai-api:**
+API libraries in various languages for connecting simulators to the Bonsai platform.
+
 - **bonsai3-py:**
-An example Python framework for interfacing with the Bonsai Platform and for writing simulators and simulator platform plugins.
+An example Python framework for interfacing sample projects.
 
 - **samples/moabsim-py:**
-
 An balancing plate simulator.
 
 - **samples/cartpole-py:**
-
 A classic cart and pole simulator.
 
 ## Microsoft Open Source Code of Conduct
