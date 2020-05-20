@@ -5,7 +5,7 @@ The Bonsai SDK is a framework and set of tools for interacting with the Bonsai p
 This repository includes an example python library (`bonsai3-py`) and two example simulators.
 
 ## Documentation
-Full documentation for Bonsai's Platform can be found at [https://docs.bons.ai]().
+Full documentation for Bonsai's Platform can be found at [https://docs.microsoft.com/en-us/bonsai/](https://docs.microsoft.com/en-us/bonsai/).
 
 You can also use Pydoc for standard Python documentation built into this library.
  
